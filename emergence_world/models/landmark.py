@@ -1,6 +1,6 @@
 import enum
 
-from sqlalchemy import Boolean, DateTime, Enum, Float, Integer, String, Text
+from sqlalchemy import JSON, Boolean, DateTime, Enum, Float, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from emergence_world.models.base import Base, TimestampMixin, UUIDMixin
@@ -38,3 +38,6 @@ class Landmark(UUIDMixin, TimestampMixin, Base):
     # Lore
     folklore: Mapped[str] = mapped_column(Text, default="")
     fun_fact: Mapped[str] = mapped_column(Text, default="")
+
+    # Location-gated tools (list of tool names available at this landmark)
+    location_gated_tools: Mapped[list] = mapped_column(JSON, default=list)

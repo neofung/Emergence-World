@@ -1,6 +1,7 @@
+import asyncio
+import logging
 import uuid
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect
@@ -8,17 +9,44 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from emergence_world.config import get_settings
-from emergence_world.database import engine, get_db
-from emergence_world.models import Agent, Base, Landmark, WorldState
+from emergence_world.core.engine import SimulationEngine
+from emergence_world.core.llm import LLMClient
+from emergence_world.database import async_session, engine, get_db
+from emergence_world.models import Agent, Base, ConstitutionArticle, Landmark, WorldState
+from emergence_world.seed.loader import seed_database
 
 settings = get_settings()
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
+logger = logging.getLogger(__name__)
+
+# Global simulation state
+_sim_engine: SimulationEngine | None = None
+_sim_task: asyncio.Task | None = None
+_llm_client: LLMClient | None = None
+
+
+def _get_llm_client() -> LLMClient:
+    global _llm_client
+    if _llm_client is None:
+        _llm_client = LLMClient()
+    return _llm_client
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    # Seed database if empty
+    async with async_session() as db:
+        await seed_database(db)
+        logger.info("Seed data loaded")
+
     yield
+    if _sim_engine:
+        _sim_engine.stop()
+    if _llm_client:
+        await _llm_client.close()
     await engine.dispose()
 
 
@@ -114,9 +142,82 @@ async def list_landmarks(db: AsyncSession = Depends(get_db)) -> list[dict[str, A
             "category": lm.category.value,
             "position": {"x": lm.position_x, "y": lm.position_y, "z": lm.position_z},
             "is_open": lm.is_open,
+            "location_gated_tools": lm.location_gated_tools,
         }
         for lm in landmarks
     ]
+
+
+# --- Constitution ---
+
+@app.get("/api/v1/constitution")
+async def constitution(db: AsyncSession = Depends(get_db)) -> list[dict[str, Any]]:
+    result = await db.execute(
+        select(ConstitutionArticle).where(ConstitutionArticle.is_active.is_(True)).order_by(ConstitutionArticle.number)
+    )
+    return [
+        {"number": a.number, "title": a.title, "content": a.content}
+        for a in result.scalars().all()
+    ]
+
+
+# --- Simulation Control ---
+
+@app.post("/api/v1/simulation/start")
+async def simulation_start() -> dict[str, Any]:
+    global _sim_engine, _sim_task
+    if _sim_engine and _sim_engine._running:
+        return {"error": "Simulation already running", **_sim_engine.status}
+
+    async with async_session() as db:
+        _sim_engine = SimulationEngine(db, _get_llm_client())
+        await _sim_engine.initialize()
+
+    async def _run():
+        async with async_session() as db:
+            _sim_engine.db = db
+            _sim_engine.llm = _get_llm_client()
+            await _sim_engine.run()
+
+    _sim_task = asyncio.create_task(_run())
+    return {"message": "Simulation started", **_sim_engine.status}
+
+
+@app.post("/api/v1/simulation/pause")
+async def simulation_pause() -> dict[str, Any]:
+    if not _sim_engine:
+        return {"error": "No simulation running"}
+    _sim_engine.pause()
+    return {"message": "Simulation paused", **_sim_engine.status}
+
+
+@app.post("/api/v1/simulation/resume")
+async def simulation_resume() -> dict[str, Any]:
+    if not _sim_engine:
+        return {"error": "No simulation running"}
+    _sim_engine.resume()
+    return {"message": "Simulation resumed", **_sim_engine.status}
+
+
+@app.post("/api/v1/simulation/stop")
+async def simulation_stop() -> dict[str, Any]:
+    global _sim_engine, _sim_task
+    if not _sim_engine:
+        return {"error": "No simulation running"}
+    _sim_engine.stop()
+    if _sim_task:
+        _sim_task.cancel()
+        _sim_task = None
+    status = _sim_engine.status
+    _sim_engine = None
+    return {"message": "Simulation stopped", **status}
+
+
+@app.get("/api/v1/simulation/status")
+async def simulation_status() -> dict[str, Any]:
+    if not _sim_engine:
+        return {"running": False, "paused": False}
+    return _sim_engine.status
 
 
 # --- WebSocket (stub) ---
