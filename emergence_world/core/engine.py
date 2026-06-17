@@ -1,4 +1,4 @@
-"""Simulation engine — core turn loop."""
+"""Simulation engine — core turn loop with tool execution."""
 
 import json
 import logging
@@ -14,9 +14,12 @@ from emergence_world.config import get_settings
 from emergence_world.core.llm import LLMClient
 from emergence_world.core.scheduler import Scheduler
 from emergence_world.models import Agent, LongTermMemory, Relationship, WorldState
+from emergence_world.tools import get_all_tools, get_tool
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+
+MAX_TOOL_CALLS_PER_TURN = 10
 
 
 class SimulationEngine:
@@ -74,7 +77,7 @@ class SimulationEngine:
             await self._advance_time()
 
     async def _execute_turn(self, agent_id: uuid.UUID) -> None:
-        """Execute a single agent turn."""
+        """Execute a single agent turn with multi-step tool loop."""
         result = await self.db.execute(
             select(Agent)
             .options(selectinload(Agent.home), selectinload(Agent.current_landmark))
@@ -95,7 +98,7 @@ class SimulationEngine:
         diary = await self._load_diary(agent_id)
         relationships = await self._load_relationships(agent_id)
 
-        # 3. Build system prompt
+        # 3. System prompt
         system_prompt = build_system_prompt(
             agent=agent,
             landmark_name=landmark_name,
@@ -109,33 +112,53 @@ class SimulationEngine:
             day_count=self._world_state.day_count if self._world_state else 1,
         )
 
-        # 4. Tools (Anthropic format)
-        tools = self._get_available_tools(agent)
+        # 4. Tools from registry
+        tools = [t.to_anthropic_schema() for t in get_all_tools().values()]
 
-        # 5. Call LLM
+        # 5. Multi-turn tool loop
         messages: list[dict] = [{"role": "user", "content": "It's your turn. What do you do?"}]
-        try:
-            response = await self.llm.chat_completion(
-                system=system_prompt,
-                messages=messages,
-                tools=tools if tools else None,
-            )
 
-            # Parse Anthropic response blocks
+        for step in range(MAX_TOOL_CALLS_PER_TURN):
+            try:
+                response = await self.llm.chat_completion(
+                    system=system_prompt,
+                    messages=messages,
+                    tools=tools,
+                )
+            except Exception as e:
+                logger.error(f"[{agent.name}] LLM call failed: {e}")
+                break
+
+            # Log response
+            tool_uses = []
             for block in response.content:
-                if block.type == "text":
+                if block.type == "text" and block.text.strip():
                     logger.info(f"[{agent.name}] [{landmark_name}] says: {block.text[:150]}")
                 elif block.type == "tool_use":
                     logger.info(
                         f"[{agent.name}] [{landmark_name}] {block.name}({json.dumps(block.input, ensure_ascii=False)[:100]})"
                     )
-                elif block.type == "thinking":
-                    logger.debug(f"[{agent.name}] thinking: {block.thinking[:80]}")
+                    tool_uses.append(block)
 
-            logger.info(f"[{agent.name}] stop_reason={response.stop_reason}")
+            # If no tool calls, turn is done
+            if response.stop_reason != "tool_use" or not tool_uses:
+                break
 
-        except Exception as e:
-            logger.error(f"[{agent.name}] LLM call failed: {e}")
+            # Execute tools and build tool_result messages
+            assistant_content = [self._block_to_dict(b) for b in response.content]
+            messages.append({"role": "assistant", "content": assistant_content})
+
+            tool_results = []
+            for tu in tool_uses:
+                result_text = await self._execute_tool(agent, tu.name, tu.input)
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": tu.id,
+                    "content": result_text,
+                })
+                logger.info(f"[{agent.name}]   → {result_text[:100]}")
+
+            messages.append({"role": "user", "content": tool_results})
 
         # 6. Check death
         if agent.energy <= 0:
@@ -148,15 +171,36 @@ class SimulationEngine:
 
         await self.db.commit()
 
+    async def _execute_tool(self, agent: Agent, tool_name: str, tool_input: dict) -> str:
+        """Execute a single tool and return the result text."""
+        tool_def = get_tool(tool_name)
+        if not tool_def:
+            return f"Error: Unknown tool '{tool_name}'."
+
+        try:
+            return await tool_def.execute(agent, self.db, **tool_input)
+        except Exception as e:
+            logger.error(f"Tool '{tool_name}' failed: {e}")
+            return f"Error executing {tool_name}: {e}"
+
+    @staticmethod
+    def _block_to_dict(block) -> dict:
+        """Convert Anthropic content block to dict for message construction."""
+        if block.type == "text":
+            return {"type": "text", "text": block.text}
+        elif block.type == "tool_use":
+            return {"type": "tool_use", "id": block.id, "name": block.name, "input": block.input}
+        elif block.type == "thinking":
+            return {"type": "thinking", "thinking": block.thinking}
+        return {"type": block.type}
+
     def _update_needs(self, agent: Agent) -> None:
-        """Decay agent needs based on elapsed time."""
         decay = 0.1
         agent.energy = max(0, agent.energy - decay)
         agent.knowledge = max(0, agent.knowledge - decay * (30 / 24))
         agent.influence = max(0, agent.influence - decay * (30 / 36))
 
     async def _find_nearby_agents(self, agent: Agent) -> list[dict]:
-        """Find agents within hearing distance."""
         result = await self.db.execute(
             select(Agent).where(Agent.is_alive.is_(True), Agent.id != agent.id)
         )
@@ -200,43 +244,7 @@ class SimulationEngine:
         )
         return list(result.scalars().all())
 
-    def _get_available_tools(self, agent: Agent) -> list[dict]:
-        """Get tools in Anthropic format."""
-        return [
-            {
-                "name": "go_to_place",
-                "description": "Move to a landmark by name. You must physically travel there.",
-                "input_schema": {"type": "object", "properties": {"place": {"type": "string", "description": "Name of the landmark to go to"}}, "required": ["place"]},
-            },
-            {
-                "name": "say_to_agent",
-                "description": "Speak to another agent. Agents within hearing distance may overhear.",
-                "input_schema": {"type": "object", "properties": {"agent_name": {"type": "string", "description": "Name of the agent to speak to"}, "message": {"type": "string", "description": "What to say"}}, "required": ["agent_name", "message"]},
-            },
-            {
-                "name": "write_diary",
-                "description": "Write a diary entry about your experiences.",
-                "input_schema": {"type": "object", "properties": {"content": {"type": "string", "description": "Diary entry content"}}, "required": ["content"]},
-            },
-            {
-                "name": "add_to_longterm_memory",
-                "description": "Store an important fact or observation in your long-term memory.",
-                "input_schema": {"type": "object", "properties": {"content": {"type": "string", "description": "The fact to remember"}}, "required": ["content"]},
-            },
-            {
-                "name": "show_emoticon",
-                "description": "Display an emoticon to express your current emotion.",
-                "input_schema": {"type": "object", "properties": {"emoticon": {"type": "string", "description": "The emoticon to show (e.g. 😊, 😠, 🤔)"}}, "required": ["emoticon"]},
-            },
-            {
-                "name": "idle",
-                "description": "Do nothing for this turn. Rest and observe.",
-                "input_schema": {"type": "object", "properties": {}},
-            },
-        ]
-
     async def _advance_time(self) -> None:
-        """Advance simulation time."""
         if not self._world_state:
             return
         if self._world_state.time_mode == "accelerated":
@@ -245,7 +253,6 @@ class SimulationEngine:
             delta = timedelta(seconds=2)
         self._world_state.current_time = (self._world_state.current_time or datetime.now(timezone.utc)) + delta
 
-        # Day advances every 24 sim-hours from start
         sim_start = datetime(2026, 1, 1, 8, 0, 0, tzinfo=timezone.utc)
         elapsed = self._world_state.current_time - sim_start
         new_day = int(elapsed.total_seconds() / 86400) + 1
