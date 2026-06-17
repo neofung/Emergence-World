@@ -161,6 +161,50 @@ async def constitution(db: AsyncSession = Depends(get_db)) -> list[dict[str, Any
     ]
 
 
+# --- Console ---
+
+@app.get("/api/v1/console/status")
+async def console_status(db: AsyncSession = Depends(get_db)) -> dict[str, str]:
+    from emergence_world.ui.console import TerminalUI
+    ui = TerminalUI(db)
+    return {"output": await ui.show_status()}
+
+
+@app.get("/api/v1/console/agents")
+async def console_agents(db: AsyncSession = Depends(get_db)) -> dict[str, str]:
+    from emergence_world.ui.console import TerminalUI
+    ui = TerminalUI(db)
+    return {"output": await ui.show_agents()}
+
+
+@app.get("/api/v1/console/agent/{name}")
+async def console_agent_detail(name: str, db: AsyncSession = Depends(get_db)) -> dict[str, str]:
+    from emergence_world.ui.console import TerminalUI
+    ui = TerminalUI(db)
+    return {"output": await ui.show_agent_detail(name)}
+
+
+@app.get("/api/v1/console/landmarks")
+async def console_landmarks(db: AsyncSession = Depends(get_db)) -> dict[str, str]:
+    from emergence_world.ui.console import TerminalUI
+    ui = TerminalUI(db)
+    return {"output": await ui.show_landmarks()}
+
+
+@app.get("/api/v1/console/conversations")
+async def console_conversations(db: AsyncSession = Depends(get_db)) -> dict[str, str]:
+    from emergence_world.ui.console import TerminalUI
+    ui = TerminalUI(db)
+    return {"output": await ui.show_recent_conversations()}
+
+
+@app.get("/api/v1/console/proposals")
+async def console_proposals(db: AsyncSession = Depends(get_db)) -> dict[str, str]:
+    from emergence_world.ui.console import TerminalUI
+    ui = TerminalUI(db)
+    return {"output": await ui.show_proposals()}
+
+
 # --- Simulation Control ---
 
 @app.post("/api/v1/simulation/start")
