@@ -110,3 +110,30 @@
 - [x] 排除范围已确认
 - [x] 关键约束已知（6 项）
 - [x] 技术栈已确定
+
+---
+
+## 实现记录
+
+### 2026-06-17 目录结构调整
+
+实际实现采用 flat layout（非 src layout）：
+
+```
+Emergence-World/           # 项目根目录
+├── pyproject.toml         # 项目配置 (uv/hatch)
+├── uv.lock
+├── .venv
+├── emergence_world/       # Python 包 (flat layout)
+│   ├── main.py
+│   ├── config.py
+│   ├── database.py
+│   ├── models/
+│   ├── alembic/
+│   ├── tests/
+│   └── {core,agents,tools,...}/
+├── data/                  # SQLite 数据库
+└── PRJ-001/               # 需求分析文档
+```
+
+**原因：** hatch 构建系统要求 `pyproject.toml` 在项目根目录，不能嵌套在包目录内。flat layout 减少了一层 `src/` 嵌套。

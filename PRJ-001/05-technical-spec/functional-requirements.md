@@ -6,7 +6,7 @@
 |------|------|
 | 项目编码 | PRJ-001 |
 | 项目名称 | Emergence World 工程实现 |
-| 文档版本 | v1.0 |
+| 文档版本 | v1.1 |
 | 创建日期 | 2026-06-17 |
 | 最后更新 | 2026-06-17 |
 
@@ -37,12 +37,13 @@
 
 | 场景 | 输出内容 | 说明 |
 |------|---------|------|
-| 成功 | 可运行的项目结构 | src/ tests/ config/ 目录，pyproject.toml |
+| 成功 | 可运行的项目结构 | emergence_world/ 包目录（含 models, core, agents, tools 等子模块），pyproject.toml 在项目根目录 |
 
 **业务规则：**
-1. 目录结构：src/emergence_world/{core, agents, tools, memory, world, economy, governance, social, ui}
-2. 使用 src layout 布局
-3. 测试框架：pytest
+1. 目录结构：emergence_world/{core, agents, tools, memory, world, economy, governance, social, ui, models, alembic, tests}
+2. pyproject.toml、uv.lock、.venv 在项目根目录
+3. alembic.ini 和 .env.example 在 emergence_world/ 内
+4. 测试框架：pytest
 
 ---
 
@@ -598,3 +599,4 @@ React + TypeScript + Canvas 的 2D 俯视地图，实时追踪代理和建筑。
 | 日期 | 版本 | 变更内容 | 原因 |
 |------|------|---------|------|
 | 2026-06-17 | v1.0 | 初始版本 | 基于业务流程分析生成 |
+| 2026-06-17 | v1.1 | FR-001 更新目录结构：flat layout (emergence_world/) 替代 src layout | 与实际实现对齐 |
