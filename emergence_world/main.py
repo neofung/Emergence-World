@@ -161,6 +161,14 @@ async def constitution(db: AsyncSession = Depends(get_db)) -> list[dict[str, Any
     ]
 
 
+# --- AWI Metrics ---
+
+@app.get("/api/v1/metrics/awi")
+async def awi_metrics(db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
+    from emergence_world.core.awi import calculate_awi
+    return await calculate_awi(db)
+
+
 # --- Console ---
 
 @app.get("/api/v1/console/status")
