@@ -7,14 +7,37 @@
 | 字段 | 值 |
 |------|-----|
 | 项目编号 | PRJ-001 |
-| 状态 | Phase 1 完成 |
-| 当前阶段 | Phase 2 待开始 |
+| 状态 | Phase 3 完成 |
+| 当前阶段 | Phase 4 待开始 |
 | 创建日期 | 2026-06-17 |
 | 最后更新 | 2026-06-17 |
 
 ## 项目简介
 
-基于 Emergence World 仓库全量文档，一人从零构建完整的 AI 社会模拟平台。技术栈：Python 3.11+ / uv / FastAPI + SQLite + React 2D 前端 + OpenAI API 格式多 LLM 支持。本地运行，83 条需求覆盖 15 个模块。
+基于 Emergence World 仓库全量文档，一人从零构建完整的 AI 社会模拟平台。技术栈：Python 3.11+ / uv / FastAPI + SQLite + Anthropic API 格式多 LLM 支持。本地运行，83 条需求覆盖 15 个模块。
+
+## 实现进度
+
+| Phase | 内容 | 状态 |
+|-------|------|------|
+| Phase 1 | 项目脚手架 + 数据库 + FastAPI | ✅ 完成 |
+| Phase 2 | 种子数据 + 模拟引擎 + LLM 集成 | ✅ 完成 |
+| Phase 3 | 工具框架 + 19 个核心工具 | ✅ 完成 |
+| Phase 4 | 终端控制台 + 内容/犯罪工具 | 待开始 |
+| Phase 5 | AWI 指标 + 2D 可视化前端 | 待开始 |
+
+## 已实现工具（19 个）
+
+| 类别 | 工具 |
+|------|------|
+| 导航 | go_to_place, run_to_place |
+| 通信 | say_to_agent, whisper_to_agent, speak_to_all |
+| 记忆 | write_diary, add_to_longterm_memory, self_care |
+| 表达 | show_emoticon, dance |
+| 社交 | assign_relationship, hug_agent, punch_agent |
+| 生存 | recharge_energy, idle |
+| 治理 | submit_townhall_proposal, vote_on_proposal, read_constitution |
+| 经济 | submit_grant_pitch |
 
 ## 阶段进度
 

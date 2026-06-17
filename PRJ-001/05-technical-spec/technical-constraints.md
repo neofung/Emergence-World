@@ -22,7 +22,7 @@
 | TC-STK-004 | ORM | SQLAlchemy 2.0 | 支持 async，可迁移 PostgreSQL | 是（可选 SQLModel） |
 | TC-STK-005 | 数据库 | SQLite（开发期） | 用户指定，单文件零依赖 | 是（可切 PostgreSQL） |
 | TC-STK-006 | 数据库迁移 | Alembic | SQLAlchemy 生态标准工具 | 是（可选其他迁移工具） |
-| TC-STK-007 | LLM SDK | openai Python SDK | 用户指定，通过 OpenAI API 格式统一调用 | 否 |
+| TC-STK-007 | LLM SDK | anthropic Python SDK | 本地代理仅支持 Anthropic API 格式 | 否 |
 | TC-STK-008 | 前端框架 | React + TypeScript + Vite | 2D 可视化阶段使用 | 是（可选 Vue/Svelte） |
 | TC-STK-009 | 前端渲染 | Canvas API | 2D 地图渲染 | 是（可选 WebGL/SVG） |
 | TC-STK-010 | 测试框架 | pytest | Python 生态标准 | 是（可选 unittest） |
