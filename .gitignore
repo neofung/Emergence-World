@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environment
+.venv/
+venv/
+
+# uv
+.uv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Claude Code (personal config)
+.claude/
+
+# Environment variables
+.env
+.env.local
+
+# Database (generated at runtime)
+data/*.db
+data/*.db-journal
+data/*.db-wal
+
+# Alembic
+alembic/versions/*.py.bak
+
+# Mypy
+.mypy_cache/
+
+# Pytest
+.pytest_cache/
+
+# Node.js (future 2D frontend)
+node_modules/
+frontend/dist/
+frontend/build/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
