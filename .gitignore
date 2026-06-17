@@ -33,7 +33,7 @@ data/*.db-journal
 data/*.db-wal
 
 # Alembic
-alembic/versions/*.py.bak
+emergence_world/alembic/versions/*.py.bak
 
 # Mypy
 .mypy_cache/
