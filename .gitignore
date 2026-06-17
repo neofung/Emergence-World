@@ -28,9 +28,9 @@ venv/
 .env.local
 
 # Database (generated at runtime)
-data/*.db
-data/*.db-journal
-data/*.db-wal
+emergence_world/data/*.db
+emergence_world/data/*.db-journal
+emergence_world/data/*.db-wal
 
 # Alembic
 emergence_world/alembic/versions/*.py.bak

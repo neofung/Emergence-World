@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     # Database
-    database_url: str = "sqlite+aiosqlite:///./data/emergence.db"
+    database_url: str = "sqlite+aiosqlite:///./emergence_world/data/emergence.db"
 
     # LLM
     llm_base_url: str = "https://api.openai.com/v1"
