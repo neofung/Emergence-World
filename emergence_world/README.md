@@ -13,6 +13,7 @@ AI 社会模拟平台 — 基于 Emergence World 研究项目的工程实现。
 | ORM | SQLAlchemy 2.0 (async) |
 | 迁移 | Alembic |
 | LLM 接入 | Anthropic SDK（本地代理） |
+| 前端 | React 19 + TypeScript + Vite + Canvas 2D |
 | 配置 | pydantic-settings |
 
 ## 快速开始
@@ -22,7 +23,11 @@ AI 社会模拟平台 — 基于 Emergence World 研究项目的工程实现。
 ### 1. 安装依赖
 
 ```bash
+# 后端
 uv sync
+
+# 前端
+cd emergence_world/frontend && npm install
 ```
 
 ### 2. 配置环境变量
@@ -32,32 +37,23 @@ cp emergence_world/.env.example emergence_world/.env
 # 编辑 .env，填入 LLM 配置
 ```
 
-### 3. 启动服务（自动创建数据库 + 填充种子数据）
+### 3. 启动后端
 
 ```bash
 uv run uvicorn emergence_world.main:app --host 127.0.0.1 --port 8000
 ```
 
-### 4. 启动模拟
+### 4. 启动前端（新终端）
+
+```bash
+cd emergence_world/frontend && npm run dev
+# 打开 http://localhost:5173
+```
+
+### 5. 启动模拟
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/v1/simulation/start
-```
-
-### 5. 观察世界
-
-```bash
-# 世界状态
-curl -s http://127.0.0.1:8000/api/v1/console/status | python -c "import sys,json; print(json.load(sys.stdin)['output'])"
-
-# 代理列表
-curl -s http://127.0.0.1:8000/api/v1/console/agents | python -c "import sys,json; print(json.load(sys.stdin)['output'])"
-
-# 代理详情
-curl -s http://127.0.0.1:8000/api/v1/console/agent/Anchor | python -c "import sys,json; print(json.load(sys.stdin)['output'])"
-
-# Swagger UI
-open http://127.0.0.1:8000/docs
 ```
 
 ## API 端点
@@ -88,10 +84,10 @@ open http://127.0.0.1:8000/docs
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/api/v1/console/status` | 世界状态概览（格式化文本） |
+| GET | `/api/v1/console/status` | 世界状态概览 |
 | GET | `/api/v1/console/agents` | 代理状态表 |
-| GET | `/api/v1/console/agent/{name}` | 单个代理详情（含记忆、日记） |
-| GET | `/api/v1/console/landmarks` | 地标列表（按类别分组） |
+| GET | `/api/v1/console/agent/{name}` | 单个代理详情 |
+| GET | `/api/v1/console/landmarks` | 地标列表 |
 | GET | `/api/v1/console/conversations` | 最近对话 |
 | GET | `/api/v1/console/proposals` | 治理提案 |
 
@@ -112,16 +108,6 @@ open http://127.0.0.1:8000/docs
 
 ## 2D 可视化前端
 
-```bash
-# 启动后端
-uv run uvicorn emergence_world.main:app --host 127.0.0.1 --port 8000
-
-# 启动前端（新终端）
-cd frontend && npm run dev
-# 打开 http://localhost:5173
-```
-
-**功能：**
 - 600×600 Canvas 显示 240×240 世界地图
 - 34 个地标按类别着色（住宅绿/商业棕/市政蓝/休闲深绿/娱乐紫/地标黄）
 - 代理显示为彩色圆点，点击查看详情
@@ -135,30 +121,18 @@ cd frontend && npm run dev
 Emergence-World/
 ├── pyproject.toml                  # 项目配置和依赖
 ├── uv.lock                         # 依赖锁定文件
-├── emergence_world/                # Python 包
+├── emergence_world/                # 主包（后端 + 前端）
 │   ├── alembic.ini                 # Alembic 迁移配置
 │   ├── .env.example                # 环境变量模板
 │   ├── .env                        # 环境变量（gitignored）
+│   │
 │   ├── main.py                     # FastAPI 入口 + API 端点
 │   ├── config.py                   # pydantic-settings 配置
 │   ├── database.py                 # 数据库引擎和会话
 │   ├── models/                     # 16 个 ORM 模型
-│   │   ├── base.py                 # 基础模型 (UUID + 时间戳)
-│   │   ├── agent.py                # 代理模型
-│   │   ├── landmark.py             # 地标模型（含 location_gated_tools）
-│   │   ├── memory.py               # 六层记忆模型
-│   │   ├── economy.py              # 经济系统模型
-│   │   ├── governance.py           # 治理系统模型
-│   │   └── world.py                # 世界状态模型
-│   ├── seed/                       # 种子数据
-│   │   ├── landmarks.py            # 34 个地标定义
-│   │   ├── agents.py               # 13 个代理档案
-│   │   ├── constitution.py         # 5 条宪法
-│   │   └── loader.py               # 数据库填充逻辑
-│   │   ├── content.py              # 内容创作工具（6 个）
-│   │   └── crime.py                # 犯罪工具（3 个）
-│   ├── core/
-│   │   ├── engine.py               # 模拟主循环 + 多轮工具执行
+│   ├── seed/                       # 种子数据（34 地标 + 13 代理 + 5 宪法）
+│   ├── core/                       # 模拟引擎
+│   │   ├── engine.py               # 主循环 + 多轮工具执行
 │   │   ├── scheduler.py            # 轮询调度 + Boost Queue
 │   │   ├── llm.py                  # Anthropic API 客户端
 │   │   └── awi.py                  # AWI 指标计算（9 个）
@@ -166,25 +140,31 @@ Emergence-World/
 │   │   └── prompt.py               # 代理系统提示词构建器
 │   ├── tools/                      # 工具框架（28 个工具）
 │   │   ├── registry.py             # @tool 装饰器 + 注册表
-│   │   ├── core.py                 # 核心工具（6 个）
-│   │   ├── navigation.py           # 导航 + 生存工具（3 个）
+│   │   ├── core.py                 # 核心工具
+│   │   ├── navigation.py           # 导航 + 生存
+│   │   ├── social.py               # 社交通信
+│   │   ├── governance.py           # 治理经济
+│   │   ├── content.py              # 内容创作
+│   │   └── crime.py                # 犯罪
 │   ├── ui/
-│   │   └── console.py              # 终端控制台（格式化输出）
+│   │   └── console.py              # 终端控制台
 │   ├── data/                       # SQLite 数据库（gitignored）
 │   ├── alembic/                    # 数据库迁移脚本
-│   └── tests/                      # 测试（待实现）
-├── frontend/                       # 2D 可视化前端
-│   ├── package.json                # React + TypeScript + Vite
-│   ├── vite.config.ts              # Vite 配置（代理 /api → 8000）
-│   └── src/
-│       ├── main.tsx                # 入口
-│       ├── App.tsx                 # 主布局
-│       ├── WorldCanvas.tsx         # Canvas 世界渲染
-│       ├── Sidebar.tsx             # 代理列表 + 对话
-│       ├── ControlPanel.tsx        # 模拟控制按钮
-│       ├── api.ts                  # API 调用封装
-│       ├── hooks.ts                # 轮询 hooks
-│       └── types.ts                # TypeScript 类型
+│   ├── tests/                      # 测试（待实现）
+│   │
+│   └── frontend/                   # 2D 可视化前端
+│       ├── package.json            # React + TypeScript + Vite
+│       ├── vite.config.ts          # 代理 /api → localhost:8000
+│       └── src/
+│           ├── main.tsx            # 入口
+│           ├── App.tsx             # 主布局
+│           ├── WorldCanvas.tsx     # Canvas 世界渲染
+│           ├── Sidebar.tsx         # 代理列表 + 对话
+│           ├── ControlPanel.tsx    # 模拟控制
+│           ├── api.ts              # API 封装
+│           ├── hooks.ts            # 轮询 hooks
+│           └── types.ts            # TypeScript 类型
+│
 ├── docs/                           # 系统设计文档
 ├── agent_profiles/                 # 代理档案
 ├── landmarks/                      # 地标描述（34 个 .md）
