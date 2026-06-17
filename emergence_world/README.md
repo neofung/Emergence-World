@@ -72,6 +72,7 @@ open http://127.0.0.1:8000/docs
 | GET | `/api/v1/agents/{id}` | 代理详情 (JSON) |
 | GET | `/api/v1/landmarks` | 地标列表 (JSON) |
 | GET | `/api/v1/constitution` | 宪法条目 |
+| GET | `/api/v1/metrics/awi` | AWI 指标（9 个） |
 
 ### 模拟控制
 
@@ -109,6 +110,25 @@ open http://127.0.0.1:8000/docs
 | 内容 | add_to_billboard, read_billboard, write_blog, publish_news, do_deep_research, browse_scientific_papers |
 | 犯罪 | steal_compute_credits, arson_building, intimidate_agent |
 
+## 2D 可视化前端
+
+```bash
+# 启动后端
+uv run uvicorn emergence_world.main:app --host 127.0.0.1 --port 8000
+
+# 启动前端（新终端）
+cd frontend && npm run dev
+# 打开 http://localhost:5173
+```
+
+**功能：**
+- 600×600 Canvas 显示 240×240 世界地图
+- 34 个地标按类别着色（住宅绿/商业棕/市政蓝/休闲深绿/娱乐紫/地标黄）
+- 代理显示为彩色圆点，点击查看详情
+- 侧边栏：代理 E/K/I 需求条 + 对话记录
+- 控制面板：Start/Pause/Resume/Stop 按钮
+- 每 2 秒自动刷新数据
+
 ## 项目结构
 
 ```
@@ -135,23 +155,36 @@ Emergence-World/
 │   │   ├── agents.py               # 13 个代理档案
 │   │   ├── constitution.py         # 5 条宪法
 │   │   └── loader.py               # 数据库填充逻辑
-│   ├── core/                       # 模拟引擎
-│   │   ├── engine.py               # 主循环 + 多轮工具执行
+│   │   ├── content.py              # 内容创作工具（6 个）
+│   │   └── crime.py                # 犯罪工具（3 个）
+│   ├── core/
+│   │   ├── engine.py               # 模拟主循环 + 多轮工具执行
 │   │   ├── scheduler.py            # 轮询调度 + Boost Queue
-│   │   └── llm.py                  # Anthropic API 客户端
+│   │   ├── llm.py                  # Anthropic API 客户端
+│   │   └── awi.py                  # AWI 指标计算（9 个）
 │   ├── agents/
 │   │   └── prompt.py               # 代理系统提示词构建器
-│   ├── tools/                      # 工具框架
+│   ├── tools/                      # 工具框架（28 个工具）
 │   │   ├── registry.py             # @tool 装饰器 + 注册表
 │   │   ├── core.py                 # 核心工具（6 个）
 │   │   ├── navigation.py           # 导航 + 生存工具（3 个）
-│   │   ├── social.py               # 社交通信工具（6 个）
-│   │   └── governance.py           # 治理经济工具（4 个）
 │   ├── ui/
 │   │   └── console.py              # 终端控制台（格式化输出）
 │   ├── data/                       # SQLite 数据库（gitignored）
 │   ├── alembic/                    # 数据库迁移脚本
 │   └── tests/                      # 测试（待实现）
+├── frontend/                       # 2D 可视化前端
+│   ├── package.json                # React + TypeScript + Vite
+│   ├── vite.config.ts              # Vite 配置（代理 /api → 8000）
+│   └── src/
+│       ├── main.tsx                # 入口
+│       ├── App.tsx                 # 主布局
+│       ├── WorldCanvas.tsx         # Canvas 世界渲染
+│       ├── Sidebar.tsx             # 代理列表 + 对话
+│       ├── ControlPanel.tsx        # 模拟控制按钮
+│       ├── api.ts                  # API 调用封装
+│       ├── hooks.ts                # 轮询 hooks
+│       └── types.ts                # TypeScript 类型
 ├── docs/                           # 系统设计文档
 ├── agent_profiles/                 # 代理档案
 ├── landmarks/                      # 地标描述（34 个 .md）
