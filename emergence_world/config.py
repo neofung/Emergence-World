@@ -9,10 +9,11 @@ class Settings(BaseSettings):
     # Database
     database_url: str = "sqlite+aiosqlite:///./emergence_world/data/emergence.db"
 
-    # LLM
-    llm_base_url: str = "https://api.openai.com/v1"
-    llm_api_key: str = ""
-    llm_default_model: str = "gpt-4o-mini"
+    # LLM (Anthropic API)
+    llm_base_url: str = "http://127.0.0.1:15721"
+    llm_api_key: str = "PROXY_MANAGED"
+    llm_default_model: str = "claude-sonnet-4-6"
+    llm_max_tokens: int = 4096
 
     # Simulation
     time_mode: str = "accelerated"  # realtime | accelerated

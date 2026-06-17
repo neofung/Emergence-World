@@ -86,9 +86,9 @@ async def seed_database(db: AsyncSession) -> None:
         ))
 
     # ── World State ───────────────────────────────────────────────────
-    now = datetime.now(timezone.utc)
+    sim_start = datetime(2026, 1, 1, 8, 0, 0, tzinfo=timezone.utc)  # Day 1, 8:00 AM
     db.add(WorldState(
-        current_time=now,
+        current_time=sim_start,
         time_mode="accelerated",
         acceleration_factor=60,
         day_count=1,

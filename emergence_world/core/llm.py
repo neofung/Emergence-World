@@ -1,11 +1,10 @@
-"""Unified LLM client — OpenAI API format with multi-provider support."""
+"""Unified LLM client — Anthropic API format."""
 
 import asyncio
 import logging
 from typing import Any
 
-from openai import AsyncOpenAI
-from openai.types.chat import ChatCompletion
+from anthropic import AsyncAnthropic
 
 from emergence_world.config import get_settings
 
@@ -15,23 +14,25 @@ settings = get_settings()
 
 
 class LLMClient:
-    """Async LLM client using OpenAI API format."""
+    """Async LLM client using Anthropic API."""
 
     def __init__(self) -> None:
-        self._client = AsyncOpenAI(
+        self._client = AsyncAnthropic(
             base_url=settings.llm_base_url,
             api_key=settings.llm_api_key,
             timeout=60.0,
         )
         self._default_model = settings.llm_default_model
+        self._max_tokens = settings.llm_max_tokens
 
     async def chat_completion(
         self,
+        system: str,
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
         model: str | None = None,
-    ) -> ChatCompletion:
-        """Call LLM with retry logic."""
+    ) -> Any:
+        """Call LLM with Anthropic API format. Returns the Message object."""
         target_model = model or self._default_model
         last_error: Exception | None = None
 
@@ -39,13 +40,14 @@ class LLMClient:
             try:
                 kwargs: dict[str, Any] = {
                     "model": target_model,
+                    "max_tokens": self._max_tokens,
+                    "system": system,
                     "messages": messages,
                 }
                 if tools:
                     kwargs["tools"] = tools
-                    kwargs["tool_choice"] = "auto"
 
-                response = await self._client.chat.completions.create(**kwargs)
+                response = await self._client.messages.create(**kwargs)
                 return response
 
             except Exception as e:
