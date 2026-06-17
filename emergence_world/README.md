@@ -94,7 +94,7 @@ open http://127.0.0.1:8000/docs
 | GET | `/api/v1/console/conversations` | 最近对话 |
 | GET | `/api/v1/console/proposals` | 治理提案 |
 
-## 已实现工具（19 个）
+## 已实现工具（28 个）
 
 | 类别 | 工具 |
 |------|------|
@@ -106,6 +106,8 @@ open http://127.0.0.1:8000/docs
 | 生存 | recharge_energy, idle |
 | 治理 | submit_townhall_proposal, vote_on_proposal, read_constitution |
 | 经济 | submit_grant_pitch |
+| 内容 | add_to_billboard, read_billboard, write_blog, publish_news, do_deep_research, browse_scientific_papers |
+| 犯罪 | steal_compute_credits, arson_building, intimidate_agent |
 
 ## 项目结构
 

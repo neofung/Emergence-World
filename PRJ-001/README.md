@@ -7,8 +7,8 @@
 | 字段 | 值 |
 |------|-----|
 | 项目编号 | PRJ-001 |
-| 状态 | Phase 4 进行中 |
-| 当前阶段 | 终端控制台已完成，内容/犯罪工具待实现 |
+| 状态 | Phase 4 完成 |
+| 当前阶段 | Phase 5 待开始 |
 | 创建日期 | 2026-06-17 |
 | 最后更新 | 2026-06-17 |
 
@@ -23,10 +23,10 @@
 | Phase 1 | 项目脚手架 + 数据库 + FastAPI | ✅ 完成 |
 | Phase 2 | 种子数据 + 模拟引擎 + LLM 集成 | ✅ 完成 |
 | Phase 3 | 工具框架 + 19 个核心工具 | ✅ 完成 |
-| Phase 4 | 终端控制台 + 内容/犯罪工具 | 进行中（控制台已完成） |
+| Phase 4 | 终端控制台 + 内容/犯罪工具 | ✅ 完成 |
 | Phase 5 | AWI 指标 + 2D 可视化前端 | 待开始 |
 
-## 已实现工具（19 个）
+## 已实现工具（28 个）
 
 | 类别 | 工具 |
 |------|------|
@@ -38,6 +38,8 @@
 | 生存 | recharge_energy, idle |
 | 治理 | submit_townhall_proposal, vote_on_proposal, read_constitution |
 | 经济 | submit_grant_pitch |
+| 内容 | add_to_billboard, read_billboard, write_blog, publish_news, do_deep_research, browse_scientific_papers |
+| 犯罪 | steal_compute_credits, arson_building, intimidate_agent |
 
 ## 阶段进度
 
