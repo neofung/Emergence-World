@@ -219,6 +219,13 @@ class SimulationEngine:
         """Execute a single tool and return the result text."""
         tool_def = get_tool(tool_name)
         if not tool_def:
+            # Fuzzy match: try partial name
+            from emergence_world.backend.tools import get_all_tools
+            for name, td in get_all_tools().items():
+                if tool_name in name or name in tool_name:
+                    tool_def = td
+                    logger.info(f"Fuzzy tool match: '{tool_name}' → '{name}'")
+                    break
             return f"Error: Unknown tool '{tool_name}'."
 
         try:
