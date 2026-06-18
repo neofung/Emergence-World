@@ -7,6 +7,7 @@ from emergence_world.backend.models.economy import (
     PitchCycle,
     PitchCycleStatus,
 )
+from emergence_world.backend.models.event_log import EventLog
 from emergence_world.backend.models.governance import (
     ConstitutionArticle,
     Proposal,
@@ -34,6 +35,7 @@ __all__ = [
     "CreditAccount",
     "CreditTransaction",
     "DiaryEntry",
+    "EventLog",
     "Landmark",
     "LandmarkCategory",
     "LongTermMemory",

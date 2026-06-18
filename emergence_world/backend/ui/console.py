@@ -7,7 +7,7 @@ from datetime import datetime
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from emergence_world.backend.models import Agent, Conversation, DiaryEntry, Landmark, LongTermMemory, Proposal, WorldState
+from emergence_world.backend.models import Agent, Conversation, DiaryEntry, EventLog, Landmark, LongTermMemory, Proposal, WorldState
 
 logger = logging.getLogger(__name__)
 
@@ -118,24 +118,40 @@ class TerminalUI:
         return "\n".join(lines)
 
     async def show_recent_conversations(self, limit: int = 10) -> str:
-        """Show recent conversations."""
-        result = await self.db.execute(
-            select(Conversation).order_by(Conversation.created_at.desc()).limit(limit)
-        )
-        convos = result.scalars().all()
-
-        # Load agent names
+        """Show recent conversations and actions."""
+        # Load agent name map
         agents = (await self.db.execute(select(Agent))).scalars().all()
-        name_map = {a.id: a.name for a in agents}
+        name_map = {a.id: a.display_name or a.name for a in agents}
 
-        lines = ["═══ Recent Conversations ═══"]
-        for c in reversed(convos):
+        # Recent conversations
+        convos = (await self.db.execute(
+            select(Conversation).order_by(Conversation.created_at.desc()).limit(limit)
+        )).scalars().all()
+
+        # Recent event logs
+        events = (await self.db.execute(
+            select(EventLog).order_by(EventLog.created_at.desc()).limit(limit)
+        )).scalars().all()
+
+        # Merge and sort by time
+        items = []
+        for c in convos:
             sender = name_map.get(c.sender_id, "?")
             receiver = name_map.get(c.receiver_id, "?")
-            whisper = " (whisper)" if c.is_whisper else ""
-            lines.append(f"  {sender} → {receiver}{whisper}: {c.content}")
-        if not convos:
-            lines.append("  (none)")
+            whisper = " (悄悄话)" if c.is_whisper else ""
+            items.append((c.created_at, f"  💬 {sender} → {receiver}{whisper}: {c.content}"))
+        for e in events:
+            icon = "🗣️" if e.event_type == "speech" else "⚡"
+            label = f"[{e.tool_name}]" if e.tool_name else ""
+            items.append((e.created_at, f"  {icon} {e.agent_name} @{e.location} {label} {e.content[:120]}"))
+
+        items.sort(key=lambda x: x[0] or datetime.min, reverse=True)
+
+        lines = ["═══ Activity Feed ═══"]
+        for _, line in items[:limit * 2]:
+            lines.append(line)
+        if not items:
+            lines.append("  (暂无)")
         return "\n".join(lines)
 
     async def show_proposals(self) -> str:

@@ -13,7 +13,7 @@ from emergence_world.backend.agents.prompt import build_system_prompt
 from emergence_world.backend.config import get_settings
 from emergence_world.backend.core.llm import LLMClient
 from emergence_world.backend.core.scheduler import Scheduler
-from emergence_world.backend.models import Agent, LongTermMemory, Relationship, WorldState
+from emergence_world.backend.models import Agent, EventLog, LongTermMemory, Relationship, WorldState
 from emergence_world.backend.tools import get_all_tools, get_tool
 
 logger = logging.getLogger(__name__)
@@ -154,6 +154,11 @@ class SimulationEngine:
             for block in response.content:
                 if block.type == "text" and block.text.strip():
                     logger.info(f"[{agent.name}] [{landmark_name}] says: {block.text[:150]}")
+                    self.db.add(EventLog(
+                        agent_id=agent.id, agent_name=agent.name,
+                        event_type="speech", content=block.text[:500],
+                        location=landmark_name,
+                    ))
                 elif block.type == "tool_use":
                     logger.info(
                         f"[{agent.name}] [{landmark_name}] {block.name}({json.dumps(block.input, ensure_ascii=False)[:100]})"
@@ -177,6 +182,11 @@ class SimulationEngine:
                     "content": result_text,
                 })
                 logger.info(f"[{agent.name}]   → {result_text[:100]}")
+                self.db.add(EventLog(
+                    agent_id=agent.id, agent_name=agent.name,
+                    event_type="tool_call", tool_name=tu.name,
+                    content=result_text[:300], location=landmark_name,
+                ))
 
             messages.append({"role": "user", "content": tool_results})
 
