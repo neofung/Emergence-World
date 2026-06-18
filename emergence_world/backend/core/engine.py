@@ -186,8 +186,10 @@ class SimulationEngine:
             for tu in tool_uses:
                 result_text = await self._execute_tool(agent, tu.name, tu.input)
                 # Update location after tool execution (agent may have moved)
-                if agent.current_landmark:
-                    landmark_display = agent.current_landmark.display_name or agent.current_landmark.name
+                if agent.current_landmark_id:
+                    lm = await self.db.get(Landmark, agent.current_landmark_id)
+                    if lm:
+                        landmark_display = lm.display_name or lm.name
                 tool_results.append({
                     "type": "tool_result",
                     "tool_use_id": tu.id,
