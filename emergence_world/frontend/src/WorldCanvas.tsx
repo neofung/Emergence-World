@@ -32,7 +32,7 @@ interface Props {
 export default function WorldCanvas({ landmarks, agents, selectedAgent, onSelectAgent }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const [size, setSize] = useState(600)
+  const [canvasSize, setCanvasSize] = useState({ w: 600, h: 600 })
   const [zoom, setZoom] = useState(1)
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [dragging, setDragging] = useState(false)
@@ -44,7 +44,7 @@ export default function WorldCanvas({ landmarks, agents, selectedAgent, onSelect
     if (!el) return
     const ro = new ResizeObserver((entries) => {
       const { width, height } = entries[0].contentRect
-      setSize(Math.floor(Math.min(width, height)))
+      setCanvasSize({ w: Math.floor(width), h: Math.floor(height) })
     })
     ro.observe(el)
     return () => ro.disconnect()
@@ -57,35 +57,38 @@ export default function WorldCanvas({ landmarks, agents, selectedAgent, onSelect
     if (!ctx) return
 
     const dpr = window.devicePixelRatio || 1
-    const cssSize = size
-    canvas.width = cssSize * dpr
-    canvas.height = cssSize * dpr
-    canvas.style.width = `${cssSize}px`
-    canvas.style.height = `${cssSize}px`
+    const { w: cssW, h: cssH } = canvasSize
+    canvas.width = cssW * dpr
+    canvas.height = cssH * dpr
+    canvas.style.width = `${cssW}px`
+    canvas.style.height = `${cssH}px`
     ctx.scale(dpr, dpr)
 
-    const baseScale = cssSize / GRID_SIZE
+    const baseScale = Math.min(cssW, cssH) / GRID_SIZE
+    const offsetX = (cssW - GRID_SIZE * baseScale) / 2
+    const offsetY = (cssH - GRID_SIZE * baseScale) / 2
 
     // Background
     ctx.fillStyle = '#16213e'
-    ctx.fillRect(0, 0, cssSize, cssSize)
+    ctx.fillRect(0, 0, cssW, cssH)
 
     // Apply zoom + pan
     ctx.save()
-    ctx.translate(pan.x, pan.y)
+    ctx.translate(pan.x + offsetX, pan.y + offsetY)
     ctx.scale(zoom, zoom)
 
     // Grid
+    const worldPx = GRID_SIZE * baseScale
     ctx.strokeStyle = '#1a1a3e'
     ctx.lineWidth = 0.5 / zoom
     for (let i = 0; i <= GRID_SIZE; i += 20) {
       ctx.beginPath()
       ctx.moveTo(i * baseScale, 0)
-      ctx.lineTo(i * baseScale, cssSize)
+      ctx.lineTo(i * baseScale, worldPx)
       ctx.stroke()
       ctx.beginPath()
       ctx.moveTo(0, i * baseScale)
-      ctx.lineTo(cssSize, i * baseScale)
+      ctx.lineTo(worldPx, i * baseScale)
       ctx.stroke()
     }
 
@@ -140,7 +143,7 @@ export default function WorldCanvas({ landmarks, agents, selectedAgent, onSelect
     })
 
     ctx.restore()
-  }, [landmarks, agents, selectedAgent, size, zoom, pan])
+  }, [landmarks, agents, selectedAgent, canvasSize, zoom, pan])
 
   useEffect(() => { draw() }, [draw])
 
@@ -193,10 +196,11 @@ export default function WorldCanvas({ landmarks, agents, selectedAgent, onSelect
     if (dragRef.current?.moved) return
 
     const rect = canvasRef.current!.getBoundingClientRect()
-    const baseScale = size / GRID_SIZE
-    // Convert screen coords back to world coords (undo pan + zoom)
-    const mx = (e.clientX - rect.left - pan.x) / zoom
-    const my = (e.clientY - rect.top - pan.y) / zoom
+    const baseScale = Math.min(canvasSize.w, canvasSize.h) / GRID_SIZE
+    const offsetX = (canvasSize.w - GRID_SIZE * baseScale) / 2
+    const offsetY = (canvasSize.h - GRID_SIZE * baseScale) / 2
+    const mx = (e.clientX - rect.left - pan.x - offsetX) / zoom
+    const my = (e.clientY - rect.top - pan.y - offsetY) / zoom
 
     let closest: string | null = null
     let minDist = 15 * (baseScale / 2.5)
@@ -210,7 +214,7 @@ export default function WorldCanvas({ landmarks, agents, selectedAgent, onSelect
       }
     }
     onSelectAgent(closest)
-  }, [agents, onSelectAgent, size, zoom, pan])
+  }, [agents, onSelectAgent, canvasSize, zoom, pan])
 
   // Zoom helpers
   const zoomTo = useCallback((target: number, center?: { x: number; y: number }) => {
@@ -242,7 +246,7 @@ export default function WorldCanvas({ landmarks, agents, selectedAgent, onSelect
   }, [zoomTo, sliderToZoom])
 
   return (
-    <div ref={containerRef} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0, minHeight: 0, position: 'relative' }}>
+    <div ref={containerRef} style={{ flex: 1, minWidth: 0, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
       <canvas
         ref={canvasRef}
         onWheel={handleWheel}
