@@ -97,19 +97,67 @@ export default function WorldCanvas({ landmarks, agents, selectedAgent, selected
 
     // Landmarks — draw markers first, collect labels
     const lmLabels: { x: number; y: number; text: string; color: string; font: string }[] = []
+
+    function drawLandmarkShape(ctx: CanvasRenderingContext2D, x: number, y: number, sz: number, category: string) {
+      const r = sz / 2
+      ctx.beginPath()
+      switch (category) {
+        case 'residential': // small square
+          ctx.rect(x - r, y - r, sz, sz)
+          break
+        case 'commercial': // diamond
+          ctx.moveTo(x, y - r); ctx.lineTo(x + r, y); ctx.lineTo(x, y + r); ctx.lineTo(x - r, y)
+          ctx.closePath()
+          break
+        case 'municipal': // triangle (pentagon-ish for gov)
+          ctx.moveTo(x, y - r)
+          ctx.lineTo(x + r * 0.95, y - r * 0.31)
+          ctx.lineTo(x + r * 0.59, y + r * 0.81)
+          ctx.lineTo(x - r * 0.59, y + r * 0.81)
+          ctx.lineTo(x - r * 0.95, y - r * 0.31)
+          ctx.closePath()
+          break
+        case 'recreation': // circle
+          ctx.arc(x, y, r, 0, Math.PI * 2)
+          break
+        case 'entertainment': // hexagon
+          for (let i = 0; i < 6; i++) {
+            const angle = (Math.PI / 3) * i - Math.PI / 6
+            const px = x + r * Math.cos(angle)
+            const py = y + r * Math.sin(angle)
+            i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py)
+          }
+          ctx.closePath()
+          break
+        case 'landmark': // star
+          for (let i = 0; i < 10; i++) {
+            const angle = (Math.PI / 5) * i - Math.PI / 2
+            const rad = i % 2 === 0 ? r : r * 0.45
+            const px = x + rad * Math.cos(angle)
+            const py = y + rad * Math.sin(angle)
+            i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py)
+          }
+          ctx.closePath()
+          break
+        default:
+          ctx.rect(x - r, y - r, sz, sz)
+      }
+    }
+
     for (const lm of landmarks) {
       const x = lm.position.x * baseScale
       const y = lm.position.y * baseScale
       const sz = (lm.category === 'residential' ? 8 : 14) * (baseScale / 2.5)
       const isLmSelected = lm.name === selectedLandmark
 
+      drawLandmarkShape(ctx, x, y, sz, lm.category)
       ctx.fillStyle = lm.is_open
         ? (CATEGORY_COLORS[lm.category] || '#555')
         : '#ff4444'
-      ctx.fillRect(x - sz / 2, y - sz / 2, sz, sz)
+      ctx.fill()
       ctx.strokeStyle = isLmSelected ? '#fff' : (lm.is_open ? '#888' : '#ff0000')
       ctx.lineWidth = isLmSelected ? 2 / zoom : 1 / zoom
-      ctx.strokeRect(x - sz / 2, y - sz / 2, sz, sz)
+      ctx.stroke()
 
       if (lm.category !== 'residential') {
         const fontSize = Math.max(7, 7 * baseScale / 2.5)
