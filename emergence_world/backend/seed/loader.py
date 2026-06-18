@@ -30,6 +30,7 @@ async def seed_database(db: AsyncSession) -> None:
     for data in LANDMARKS:
         lm = Landmark(
             name=data["name"],
+            display_name=data.get("display_name", ""),
             tagline=data.get("tagline", ""),
             description=data.get("description", ""),
             category=LandmarkCategory(data["category"]),

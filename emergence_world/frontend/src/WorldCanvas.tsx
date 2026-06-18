@@ -106,7 +106,7 @@ export default function WorldCanvas({ landmarks, agents, selectedAgent, onSelect
         ctx.fillStyle = '#aaa'
         ctx.font = `${Math.max(7, 7 * baseScale / 2.5)}px monospace`
         ctx.textAlign = 'center'
-        ctx.fillText(lm.name, x, y + sz / 2 + Math.max(9, 9 * baseScale / 2.5))
+        ctx.fillText(lm.display_name || lm.name, x, y + sz / 2 + Math.max(9, 9 * baseScale / 2.5))
       }
     }
 

@@ -16,6 +16,7 @@ export interface Agent {
 export interface Landmark {
   id: string
   name: string
+  display_name: string
   tagline: string
   category: string
   position: { x: number; y: number; z: number }

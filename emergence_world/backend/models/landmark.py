@@ -19,6 +19,7 @@ class Landmark(UUIDMixin, TimestampMixin, Base):
     __tablename__ = "landmarks"
 
     name: Mapped[str] = mapped_column(String(128), unique=True, index=True)
+    display_name: Mapped[str] = mapped_column(String(128), default="")
     tagline: Mapped[str] = mapped_column(String(256), default="")
     description: Mapped[str] = mapped_column(Text, default="")
     category: Mapped[LandmarkCategory] = mapped_column(Enum(LandmarkCategory))

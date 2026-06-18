@@ -147,6 +147,7 @@ async def list_landmarks(db: AsyncSession = Depends(get_db)) -> list[dict[str, A
         {
             "id": str(lm.id),
             "name": lm.name,
+            "display_name": lm.display_name or lm.name,
             "tagline": lm.tagline,
             "category": lm.category.value,
             "position": {"x": lm.position_x, "y": lm.position_y, "z": lm.position_z},
