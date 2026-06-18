@@ -47,6 +47,9 @@ class Settings(BaseSettings):
     host: str = "127.0.0.1"
     port: int = 8000
 
+    # i18n
+    language: str = "zh_cn"  # en, zh_cn
+
 
 @lru_cache
 def get_settings() -> Settings:
