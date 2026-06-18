@@ -162,15 +162,15 @@ class SimulationEngine:
             tool_uses = []
             for block in response.content:
                 if block.type == "text" and block.text.strip():
-                    logger.info(f"[{display}] [{landmark_display}] says: {block.text[:150]}")
+                    logger.info(f"[{display}] [{landmark_display}] says: {block.text}")
                     self.db.add(EventLog(
                         agent_id=agent.id, agent_name=display,
-                        event_type="speech", content=block.text[:500],
+                        event_type="speech", content=block.text,
                         location=landmark_display,
                     ))
                 elif block.type == "tool_use":
                     logger.info(
-                        f"[{display}] [{landmark_display}] {block.name}({json.dumps(block.input, ensure_ascii=False)[:100]})"
+                        f"[{display}] [{landmark_display}] {block.name}({json.dumps(block.input, ensure_ascii=False)})"
                     )
                     tool_uses.append(block)
 
@@ -190,11 +190,11 @@ class SimulationEngine:
                     "tool_use_id": tu.id,
                     "content": result_text,
                 })
-                logger.info(f"[{display}]   → {result_text[:100]}")
+                logger.info(f"[{display}]   → {result_text}")
                 self.db.add(EventLog(
                     agent_id=agent.id, agent_name=display,
                     event_type="tool_call", tool_name=tu.name,
-                    content=result_text[:300], location=landmark_display,
+                    content=result_text, location=landmark_display,
                 ))
 
             messages.append({"role": "user", "content": tool_results})
