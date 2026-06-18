@@ -141,6 +141,8 @@ class SimulationEngine:
         # 4. Tools from registry
         tools = [t.to_anthropic_schema() for t in get_all_tools().values()]
 
+        display = agent.display_name or agent.name
+
         # 5. Multi-turn tool loop
         messages: list[dict] = [{"role": "user", "content": "It's your turn. What do you do?"}]
 
@@ -152,15 +154,14 @@ class SimulationEngine:
                     tools=tools,
                 )
             except Exception as e:
-                logger.error(f"[{agent.name}] LLM call failed: {e}")
+                logger.error(f"[{display}] LLM call failed: {e}")
                 break
 
             # Log response
-            display = agent.display_name or agent.name
             tool_uses = []
             for block in response.content:
                 if block.type == "text" and block.text.strip():
-                    logger.info(f"[{agent.name}] [{landmark_name}] says: {block.text[:150]}")
+                    logger.info(f"[{display}] [{landmark_name}] says: {block.text[:150]}")
                     self.db.add(EventLog(
                         agent_id=agent.id, agent_name=display,
                         event_type="speech", content=block.text[:500],
@@ -168,7 +169,7 @@ class SimulationEngine:
                     ))
                 elif block.type == "tool_use":
                     logger.info(
-                        f"[{agent.name}] [{landmark_name}] {block.name}({json.dumps(block.input, ensure_ascii=False)[:100]})"
+                        f"[{display}] [{landmark_name}] {block.name}({json.dumps(block.input, ensure_ascii=False)[:100]})"
                     )
                     tool_uses.append(block)
 
@@ -188,7 +189,7 @@ class SimulationEngine:
                     "tool_use_id": tu.id,
                     "content": result_text,
                 })
-                logger.info(f"[{agent.name}]   → {result_text[:100]}")
+                logger.info(f"[{display}]   → {result_text[:100]}")
                 self.db.add(EventLog(
                     agent_id=agent.id, agent_name=display,
                     event_type="tool_call", tool_name=tu.name,
@@ -204,7 +205,7 @@ class SimulationEngine:
             elif agent.death_timer <= 0:
                 agent.is_alive = False
                 self.scheduler.remove_agent(agent.id)
-                logger.info(f"[{agent.name}] has died (energy depleted)")
+                logger.info(f"[{display}] has died (energy depleted)")
 
         await self.db.commit()
 
