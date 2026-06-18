@@ -13,12 +13,12 @@ interface Props {
 
 function NeedBar({ label, value, color }: { label: string; value: number; color: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11 }}>
-      <span style={{ width: 14 }}>{label}</span>
-      <div style={{ flex: 1, height: 6, background: '#2a2a4e', borderRadius: 3 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13 }}>
+      <span style={{ width: 16 }}>{label}</span>
+      <div style={{ flex: 1, height: 7, background: '#2a2a4e', borderRadius: 3 }}>
         <div style={{ width: `${value}%`, height: '100%', background: color, borderRadius: 3 }} />
       </div>
-      <span style={{ width: 28, textAlign: 'right' }}>{value.toFixed(0)}</span>
+      <span style={{ width: 32, textAlign: 'right' }}>{value.toFixed(0)}</span>
     </div>
   )
 }
@@ -53,15 +53,15 @@ export default function Sidebar({ agents, landmarks, selectedAgent, selectedLand
   }, [agents])
 
   return (
-    <div style={{ width: 320, display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12, overflow: 'hidden' }}>
+    <div style={{ width: 360, display: 'flex', flexDirection: 'column', gap: 8, fontSize: 14, overflow: 'hidden' }}>
       {/* Agent List — collapsible */}
       <div style={{ background: '#16213e', borderRadius: 6, padding: 8, flexShrink: 0 }}>
         <h3
           onClick={() => setAgentsOpen(v => !v)}
-          style={{ fontSize: 13, marginBottom: agentsOpen ? 6 : 0, color: '#4d96ff', cursor: 'pointer', userSelect: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+          style={{ fontSize: 15, marginBottom: agentsOpen ? 6 : 0, color: '#4d96ff', cursor: 'pointer', userSelect: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
         >
           <span>Agents ({agents.filter(a => a.is_alive).length})</span>
-          <span style={{ fontSize: 11, color: '#666' }}>{agentsOpen ? '▼' : '▶'}</span>
+          <span style={{ fontSize: 12, color: '#666' }}>{agentsOpen ? '▼' : '▶'}</span>
         </h3>
         {agentsOpen && (
           <div style={{ maxHeight: '35vh', overflow: 'auto' }}>
@@ -94,8 +94,8 @@ export default function Sidebar({ agents, landmarks, selectedAgent, selectedLand
       {/* Selected Agent Detail */}
       {selectedAgent && detail && (
         <div style={{ background: '#16213e', borderRadius: 6, padding: 8, flexShrink: 0 }}>
-          <h3 style={{ fontSize: 13, marginBottom: 6, color: '#4d96ff' }}>{displayNameMap[selectedAgent] || selectedAgent}</h3>
-          <pre style={{ fontSize: 10, whiteSpace: 'pre-wrap', color: '#ccc', lineHeight: 1.4, maxHeight: 120, overflow: 'auto' }}>{detail}</pre>
+          <h3 style={{ fontSize: 15, marginBottom: 6, color: '#4d96ff' }}>{displayNameMap[selectedAgent] || selectedAgent}</h3>
+          <pre style={{ fontSize: 13, whiteSpace: 'pre-wrap', color: '#ccc', lineHeight: 1.5, maxHeight: 120, overflow: 'auto' }}>{detail}</pre>
         </div>
       )}
 
@@ -105,14 +105,14 @@ export default function Sidebar({ agents, landmarks, selectedAgent, selectedLand
         if (!lm) return null
         return (
           <div style={{ background: '#16213e', borderRadius: 6, padding: 8, flexShrink: 0 }}>
-            <h3 style={{ fontSize: 13, marginBottom: 4, color: '#4d96ff' }}>{lm.display_name || lm.name}</h3>
-            <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>{lm.tagline}</div>
-            <div style={{ fontSize: 10, color: lm.is_open ? '#6bcb77' : '#ff6b6b', marginBottom: 4 }}>{lm.is_open ? '开放' : '关闭'} · {lm.category}</div>
-            {lm.description && <div style={{ fontSize: 10, color: '#ccc', lineHeight: 1.4, marginBottom: 4 }}>{lm.description}</div>}
-            {lm.folklore && <div style={{ fontSize: 10, color: '#aaa', lineHeight: 1.4, fontStyle: 'italic', marginBottom: 4 }}>「{lm.folklore}」</div>}
-            {lm.fun_fact && <div style={{ fontSize: 10, color: '#ffd93d', lineHeight: 1.4 }}>💡 {lm.fun_fact}</div>}
+            <h3 style={{ fontSize: 15, marginBottom: 4, color: '#4d96ff' }}>{lm.display_name || lm.name}</h3>
+            <div style={{ fontSize: 13, color: '#888', marginBottom: 4 }}>{lm.tagline}</div>
+            <div style={{ fontSize: 12, color: lm.is_open ? '#6bcb77' : '#ff6b6b', marginBottom: 4 }}>{lm.is_open ? '开放' : '关闭'} · {lm.category}</div>
+            {lm.description && <div style={{ fontSize: 12, color: '#ccc', lineHeight: 1.5, marginBottom: 4 }}>{lm.description}</div>}
+            {lm.folklore && <div style={{ fontSize: 12, color: '#aaa', lineHeight: 1.5, fontStyle: 'italic', marginBottom: 4 }}>「{lm.folklore}」</div>}
+            {lm.fun_fact && <div style={{ fontSize: 12, color: '#ffd93d', lineHeight: 1.5 }}>💡 {lm.fun_fact}</div>}
             {lm.location_gated_tools.length > 0 && (
-              <div style={{ fontSize: 10, color: '#666', marginTop: 4 }}>可用工具: {lm.location_gated_tools.length} 个</div>
+              <div style={{ fontSize: 11, color: '#666', marginTop: 4 }}>可用工具: {lm.location_gated_tools.length} 个</div>
             )}
           </div>
         )
@@ -120,11 +120,11 @@ export default function Sidebar({ agents, landmarks, selectedAgent, selectedLand
 
       {/* Conversations — fills remaining space, always visible */}
       <div style={{ background: '#16213e', borderRadius: 6, padding: 8, flex: 1, overflow: 'auto', minHeight: 0 }}>
-        <h3 style={{ fontSize: 13, marginBottom: 6, color: '#4d96ff', position: 'sticky', top: 0, background: '#16213e', paddingBottom: 4 }}>
-          Conversations
+        <h3 style={{ fontSize: 15, marginBottom: 6, color: '#4d96ff', position: 'sticky', top: 0, background: '#16213e', paddingBottom: 4 }}>
+          活动流
         </h3>
         <div
-          style={{ fontSize: 10, whiteSpace: 'pre-wrap', color: '#aaa', lineHeight: 1.4 }}
+          style={{ fontSize: 13, whiteSpace: 'pre-wrap', color: '#aaa', lineHeight: 1.5 }}
           dangerouslySetInnerHTML={{ __html: convos ? colorize(convos, colorMap, displayNameMap) : '(暂无对话)' }}
         />
       </div>
