@@ -89,3 +89,152 @@ async def self_care(agent: Agent, db: AsyncSession, **kwargs) -> str:
 
     agent.energy = max(0, agent.energy - 5.0)
     return f"Self-care complete. Compressed {len(batch)} memories into a summary. (Energy -5)"
+
+
+@tool(
+    name="go_to_coordinates",
+    description="Navigate to specific (x, z) coordinates in the world.",
+    input_schema={
+        "type": "object",
+        "properties": {
+            "x": {"type": "number", "description": "X coordinate"},
+            "z": {"type": "number", "description": "Z coordinate"},
+        },
+        "required": ["x", "z"],
+    },
+    category="navigation",
+)
+async def go_to_coordinates(agent: Agent, db: AsyncSession, x: float, z: float) -> str:
+    agent.position_x = x
+    agent.position_z = z
+    agent.current_landmark_id = None
+    return f"You navigated to ({x:.1f}, {z:.1f})."
+
+
+@tool(
+    name="get_distance_to",
+    description="Check the distance to a landmark or agent.",
+    input_schema={
+        "type": "object",
+        "properties": {
+            "target": {"type": "string", "description": "Name of a landmark or agent"},
+        },
+        "required": ["target"],
+    },
+    category="navigation",
+)
+async def get_distance_to(agent: Agent, db: AsyncSession, target: str) -> str:
+    # Try landmark first
+    result = await db.execute(select(Landmark).where(Landmark.name.ilike(target)))
+    lm = result.scalar_one_or_none()
+    if lm:
+        dx = lm.position_x - agent.position_x
+        dz = lm.position_z - agent.position_z
+        dist = (dx**2 + dz**2) ** 0.5
+        return f"Distance to {lm.name}: {dist:.1f} units."
+
+    # Try agent
+    result = await db.execute(select(Agent).where(Agent.name.ilike(target), Agent.is_alive.is_(True)))
+    other = result.scalar_one_or_none()
+    if other:
+        dx = other.position_x - agent.position_x
+        dy = other.position_y - agent.position_y
+        dist = (dx**2 + dy**2) ** 0.5
+        return f"Distance to {other.name}: {dist:.1f} units."
+
+    return f"Error: '{target}' not found as a landmark or agent."
+
+
+@tool(
+    name="list_agents",
+    description="List all agents and their current locations.",
+    input_schema={"type": "object", "properties": {}},
+    category="navigation",
+)
+async def list_agents(agent: Agent, db: AsyncSession, **kwargs) -> str:
+    result = await db.execute(select(Agent).where(Agent.is_alive.is_(True)))
+    agents = result.scalars().all()
+    lines = []
+    for a in agents:
+        loc = ""
+        if a.current_landmark_id:
+            lm = await db.get(Landmark, a.current_landmark_id)
+            loc = lm.name if lm else "unknown"
+        else:
+            loc = f"({a.position_x:.0f}, {a.position_z:.0f})"
+        lines.append(f"  {a.name} [{a.role}] @ {loc}")
+    return "Agents:\n" + "\n".join(lines)
+
+
+@tool(
+    name="list_landmarks",
+    description="List all landmarks with their descriptions.",
+    input_schema={"type": "object", "properties": {}},
+    category="navigation",
+)
+async def list_landmarks(agent: Agent, db: AsyncSession, **kwargs) -> str:
+    result = await db.execute(select(Landmark).order_by(Landmark.name))
+    landmarks = result.scalars().all()
+    lines = []
+    for lm in landmarks:
+        status = "OPEN" if lm.is_open else "CLOSED"
+        lines.append(f"  {lm.name} [{lm.category.value}] ({status}): {lm.tagline}")
+    return "Landmarks:\n" + "\n".join(lines)
+
+
+@tool(
+    name="get_nearby",
+    description="List agents and landmarks within proximity (25 units).",
+    input_schema={"type": "object", "properties": {}},
+    category="navigation",
+)
+async def get_nearby(agent: Agent, db: AsyncSession, **kwargs) -> str:
+    ax, ay = agent.position_x, agent.position_y
+    # Nearby agents
+    result = await db.execute(select(Agent).where(Agent.is_alive.is_(True), Agent.id != agent.id))
+    others = result.scalars().all()
+    nearby_agents = []
+    for o in others:
+        dist = ((o.position_x - ax)**2 + (o.position_y - ay)**2) ** 0.5
+        if dist <= 25.0:
+            nearby_agents.append(f"  {o.name} ({dist:.1f} units)")
+
+    # Nearby landmarks
+    result = await db.execute(select(Landmark))
+    landmarks = result.scalars().all()
+    nearby_lm = []
+    for lm in landmarks:
+        dist = ((lm.position_x - ax)**2 + (lm.position_y - ay)**2) ** 0.5
+        if dist <= 25.0:
+            nearby_lm.append(f"  {lm.name} ({dist:.1f} units)")
+
+    parts = []
+    if nearby_agents:
+        parts.append("Nearby agents:\n" + "\n".join(nearby_agents))
+    if nearby_lm:
+        parts.append("Nearby landmarks:\n" + "\n".join(nearby_lm))
+    return "\n\n".join(parts) if parts else "Nothing nearby."
+
+
+@tool(
+    name="follow_agent",
+    description="Follow another agent as they move. Updates your position to match theirs.",
+    input_schema={
+        "type": "object",
+        "properties": {
+            "agent_name": {"type": "string", "description": "Name of the agent to follow"},
+        },
+        "required": ["agent_name"],
+    },
+    category="navigation",
+)
+async def follow_agent(agent: Agent, db: AsyncSession, agent_name: str) -> str:
+    result = await db.execute(select(Agent).where(Agent.name.ilike(agent_name), Agent.is_alive.is_(True)))
+    target = result.scalar_one_or_none()
+    if not target:
+        return f"Error: Agent '{agent_name}' not found."
+    agent.position_x = target.position_x
+    agent.position_y = target.position_y
+    agent.position_z = target.position_z
+    agent.current_landmark_id = target.current_landmark_id
+    return f"You are now following {target.name}."

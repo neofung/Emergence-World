@@ -49,7 +49,7 @@ Emergence-World/
 │   │   │   ├── llm.py              # Anthropic 客户端
 │   │   │   └── awi.py              # AWI 指标
 │   │   ├── agents/prompt.py        # 提示词构建器
-│   │   ├── tools/                  # 28 个工具
+│   │   ├── tools/                  # 117 个工具（17 类别）
 │   │   ├── ui/console.py           # 终端控制台
 │   │   ├── alembic/                # 数据库迁移
 │   │   ├── data/                   # SQLite（gitignored）
@@ -83,20 +83,28 @@ Emergence-World/
 | POST | `/api/v1/simulation/stop` | 停止 |
 | GET | `/api/v1/console/*` | 终端控制台视图 |
 
-## 工具（28 个）
+## 工具（117 个）
 
 | 类别 | 工具 |
 |------|------|
-| 导航 | go_to_place, run_to_place |
-| 通信 | say_to_agent, whisper_to_agent, speak_to_all |
-| 记忆 | write_diary, add_to_longterm_memory, self_care |
-| 表达 | show_emoticon, dance |
-| 社交 | assign_relationship, hug_agent, punch_agent |
-| 生存 | recharge_energy, idle |
-| 治理 | submit_townhall_proposal, vote_on_proposal, read_constitution |
-| 经济 | submit_grant_pitch |
-| 内容 | add_to_billboard, read_billboard, write_blog, publish_news, do_deep_research, browse_scientific_papers |
-| 犯罪 | steal_compute_credits, arson_building, intimidate_agent |
+| 导航 | go_to_place, go_home, run_to_place, go_to_coordinates, turn_towards, get_distance_to, list_agents, list_landmarks, get_nearby, follow_agent |
+| 通信 | say_to_agent, whisper_to_agent, speak_to_all, send_message, read_messages |
+| 记忆 | write_diary, add_to_longterm_memory, remove_from_memory, retrieve_specific_memories, search_diary_for_keywords, show_diary_entries_from_day |
+| 表达 | show_emoticon, set_mood_and_terminate, think_aloud |
+| 规划 | add_todo, complete_todo, list_todo, add_to_calendar, check_calendar, remove_from_calendar |
+| 身份 | change_name, read_personality, update_personality_line, add_to_soul, remove_from_soul |
+| 社交 | assign_relationship, hug_agent, kiss_agent, flirt_with_agent, wave_at, dance, check_agent_popularity |
+| 自我关怀 | self_care, idle, recharge_energy, pray |
+| 治理 | submit_townhall_proposal, list_proposals, read_townhall_proposal, vote_on_proposal, comment_on_proposal, update_proposal, read_constitution, submit_final_report, file_complaint, check_complaint_status |
+| 经济 | submit_grant_pitch, vote_for_pitch, list_credit_pitches |
+| 研究 | do_deep_research, browse_scientific_papers, todays_news_from_human_world, web_fetch, publish_to_archive, search_archive, archive_index, read_agent_manifesto, browse_tool_registry, extract_code_for_tool, check_weather, tool_usage_analytics_by_character, overall_tool_usage_analytics_by_date, victory_arch_pitch_winners, social_event_history, check_landmark_popularity, create_human_task, check_human_task_status, rate_human_response |
+| 内容 | add_to_billboard, read_billboard, edit_billboard, delete_from_billboard, reply_to_billboard, react_to_billboard, write_blog, update_blog, delete_blog, comment_on_blog, list_blogs, read_blog, publish_news, generate_image, execute_python_code_tool, take_picture, upload_data_for_sharing |
+| 犯罪 | steal_compute_credits, arson_building, punch_agent, intimidate_agent |
+| 神经链接 | neural_link_request_memory, neural_link_share_memory |
+| 活动 | create_personal_event, invite_to_event, accept_event_invitation, decline_event_invitation, review_event, rsvp_to_event, event_present, event_respond, propose_community_event, list_community_events |
+| 日程 | create_routine, run_routine, list_routines, delete_routine |
+| 建造 | put_brick_in_pixel |
+| 工具 | ignore |
 
 ## Alembic
 

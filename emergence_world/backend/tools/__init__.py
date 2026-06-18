@@ -9,5 +9,12 @@ import emergence_world.backend.tools.social  # noqa: F401
 import emergence_world.backend.tools.governance  # noqa: F401
 import emergence_world.backend.tools.content  # noqa: F401
 import emergence_world.backend.tools.crime  # noqa: F401
+import emergence_world.backend.tools.planning  # noqa: F401
+import emergence_world.backend.tools.identity  # noqa: F401
+import emergence_world.backend.tools.memory_extended  # noqa: F401
+import emergence_world.backend.tools.neural_link  # noqa: F401
+import emergence_world.backend.tools.community  # noqa: F401
+import emergence_world.backend.tools.routine  # noqa: F401
+import emergence_world.backend.tools.building  # noqa: F401
 
 __all__ = ["get_all_tools", "get_tool", "get_tools_for_location"]

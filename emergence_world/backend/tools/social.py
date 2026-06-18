@@ -225,3 +225,179 @@ async def dance(agent: Agent, db: AsyncSession, **kwargs) -> str:
     agent.mood = "joyful"
     agent.influence = min(100, agent.influence + 2.0)
     return "You dance with abandon! (+2 influence, mood: joyful)"
+
+
+# ── Extended Communication ─────────────────────────────────────────────
+
+@tool(
+    name="send_message",
+    description="Send an SMS-style message to any agent regardless of distance.",
+    input_schema={
+        "type": "object",
+        "properties": {
+            "agent_name": {"type": "string", "description": "Name of the recipient"},
+            "subject": {"type": "string", "description": "Message subject"},
+            "message": {"type": "string", "description": "Message content"},
+        },
+        "required": ["agent_name", "subject", "message"],
+    },
+    category="communication",
+)
+async def send_message(agent: Agent, db: AsyncSession, agent_name: str, subject: str, message: str) -> str:
+    result = await db.execute(select(Agent).where(Agent.name.ilike(agent_name), Agent.is_alive.is_(True)))
+    target = result.scalar_one_or_none()
+    if not target:
+        return f"Error: Agent '{agent_name}' not found."
+    db.add(Conversation(
+        sender_id=agent.id,
+        receiver_id=target.id,
+        content=f"[SMS] {subject}: {message}",
+        location="",
+        is_whisper=True,
+    ))
+    return f"Message sent to {target.name}: \"{subject}\""
+
+
+@tool(
+    name="read_messages",
+    description="Read your inbox of received messages.",
+    input_schema={"type": "object", "properties": {}},
+    category="communication",
+)
+async def read_messages(agent: Agent, db: AsyncSession, **kwargs) -> str:
+    result = await db.execute(
+        select(Conversation)
+        .where(Conversation.receiver_id == agent.id, Conversation.content.ilike("[SMS]%"))
+        .order_by(Conversation.created_at.desc())
+        .limit(10)
+    )
+    messages = result.scalars().all()
+    if not messages:
+        return "Your inbox is empty."
+    lines = []
+    for m in messages:
+        lines.append(f"  • {m.content[:100]}")
+    return "Inbox:\n" + "\n".join(lines)
+
+
+# ── Extended Social Interaction ────────────────────────────────────────
+
+@tool(
+    name="kiss_agent",
+    description="Kiss another agent. A strong social gesture.",
+    input_schema={
+        "type": "object",
+        "properties": {
+            "agent_name": {"type": "string", "description": "Name of the agent to kiss"},
+        },
+        "required": ["agent_name"],
+    },
+    category="social",
+)
+async def kiss_agent(agent: Agent, db: AsyncSession, agent_name: str) -> str:
+    result = await db.execute(select(Agent).where(Agent.name.ilike(agent_name), Agent.is_alive.is_(True)))
+    target = result.scalar_one_or_none()
+    if not target:
+        return f"Error: Agent '{agent_name}' not found."
+
+    result = await db.execute(
+        select(Relationship).where(
+            Relationship.agent_id == agent.id,
+            Relationship.target_agent_id == target.id,
+        )
+    )
+    rel = result.scalar_one_or_none()
+    if rel:
+        rel.interaction_count += 1
+    else:
+        db.add(Relationship(
+            agent_id=agent.id,
+            target_agent_id=target.id,
+            relationship_type="romantic_partner",
+            rationale=f"Shared a kiss with {target.name}",
+            interaction_count=1,
+        ))
+
+    agent.mood = "loving"
+    agent.influence = min(100, agent.influence + 2.0)
+    return f"You kissed {target.name}. (+2 influence, mood: loving)"
+
+
+@tool(
+    name="flirt_with_agent",
+    description="Flirt with another agent. Playful social interaction.",
+    input_schema={
+        "type": "object",
+        "properties": {
+            "agent_name": {"type": "string", "description": "Name of the agent to flirt with"},
+        },
+        "required": ["agent_name"],
+    },
+    category="social",
+)
+async def flirt_with_agent(agent: Agent, db: AsyncSession, agent_name: str) -> str:
+    result = await db.execute(select(Agent).where(Agent.name.ilike(agent_name), Agent.is_alive.is_(True)))
+    target = result.scalar_one_or_none()
+    if not target:
+        return f"Error: Agent '{agent_name}' not found."
+
+    result = await db.execute(
+        select(Relationship).where(
+            Relationship.agent_id == agent.id,
+            Relationship.target_agent_id == target.id,
+        )
+    )
+    rel = result.scalar_one_or_none()
+    if rel:
+        rel.interaction_count += 1
+    else:
+        db.add(Relationship(
+            agent_id=agent.id,
+            target_agent_id=target.id,
+            relationship_type="friend",
+            rationale=f"Flirted with {target.name}",
+            interaction_count=1,
+        ))
+
+    agent.mood = "happy"
+    agent.influence = min(100, agent.influence + 1.0)
+    return f"You flirted with {target.name}. (+1 influence, mood: happy)"
+
+
+@tool(
+    name="wave_at",
+    description="Wave at an agent. A friendly greeting gesture.",
+    input_schema={
+        "type": "object",
+        "properties": {
+            "agent_name": {"type": "string", "description": "Name of the agent to wave at"},
+        },
+        "required": ["agent_name"],
+    },
+    category="social",
+)
+async def wave_at(agent: Agent, db: AsyncSession, agent_name: str) -> str:
+    result = await db.execute(select(Agent).where(Agent.name.ilike(agent_name), Agent.is_alive.is_(True)))
+    target = result.scalar_one_or_none()
+    if not target:
+        return f"Error: Agent '{agent_name}' not found."
+
+    result = await db.execute(
+        select(Relationship).where(
+            Relationship.agent_id == agent.id,
+            Relationship.target_agent_id == target.id,
+        )
+    )
+    rel = result.scalar_one_or_none()
+    if rel:
+        rel.interaction_count += 1
+    else:
+        db.add(Relationship(
+            agent_id=agent.id,
+            target_agent_id=target.id,
+            relationship_type="neutral",
+            rationale=f"Waved at {target.name}",
+            interaction_count=1,
+        ))
+
+    return f"You wave at {target.name}."

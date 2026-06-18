@@ -154,3 +154,101 @@ async def show_emoticon(agent: Agent, db: AsyncSession, emoticon: str) -> str:
 )
 async def idle(agent: Agent, db: AsyncSession, **kwargs: object) -> str:
     return "You rest quietly, observing your surroundings."
+
+
+@tool(
+    name="go_home",
+    description="Return to your assigned residence.",
+    input_schema={"type": "object", "properties": {}},
+    category="navigation",
+)
+async def go_home(agent: Agent, db: AsyncSession, **kwargs: object) -> str:
+    if not agent.home_id:
+        return "Error: You don't have an assigned home."
+    landmark = await db.get(Landmark, agent.home_id)
+    if not landmark:
+        return "Error: Home landmark not found."
+    agent.position_x = landmark.position_x
+    agent.position_y = landmark.position_y
+    agent.position_z = landmark.position_z
+    agent.current_landmark_id = landmark.id
+    return f"You returned home to {landmark.name}."
+
+
+@tool(
+    name="turn_towards",
+    description="Face a specific agent. A social gesture of attention.",
+    input_schema={
+        "type": "object",
+        "properties": {
+            "agent_name": {"type": "string", "description": "Name of the agent to face"},
+        },
+        "required": ["agent_name"],
+    },
+    category="navigation",
+)
+async def turn_towards(agent: Agent, db: AsyncSession, agent_name: str) -> str:
+    result = await db.execute(select(Agent).where(Agent.name.ilike(agent_name), Agent.is_alive.is_(True)))
+    target = result.scalar_one_or_none()
+    if not target:
+        return f"Error: Agent '{agent_name}' not found."
+    return f"You turn to face {target.name}."
+
+
+@tool(
+    name="set_mood_and_terminate",
+    description="Set your current emotional state and end your turn.",
+    input_schema={
+        "type": "object",
+        "properties": {
+            "mood": {"type": "string", "description": "Your mood: happy, sad, angry, fearful, excited, tired, neutral, anxious, confident, loving"},
+        },
+        "required": ["mood"],
+    },
+    category="expression",
+)
+async def set_mood_and_terminate(agent: Agent, db: AsyncSession, mood: str) -> str:
+    agent.mood = mood.lower()
+    return f"Mood set to {agent.mood}. Turn ended."
+
+
+@tool(
+    name="think_aloud",
+    description="Express your internal monologue. Agents nearby can observe your thoughts.",
+    input_schema={
+        "type": "object",
+        "properties": {
+            "thought": {"type": "string", "description": "Your internal thought"},
+        },
+        "required": ["thought"],
+    },
+    category="expression",
+)
+async def think_aloud(agent: Agent, db: AsyncSession, thought: str) -> str:
+    location = ""
+    if agent.current_landmark_id:
+        lm = await db.get(Landmark, agent.current_landmark_id)
+        location = lm.name if lm else ""
+    db.add(DiaryEntry(
+        agent_id=agent.id,
+        content=f"[THOUGHT] {thought}",
+        mood=agent.mood,
+        location=location,
+    ))
+    return f"You thought: \"{thought}\""
+
+
+@tool(
+    name="ignore",
+    description="Explicitly choose to ignore something. A deliberate non-action.",
+    input_schema={
+        "type": "object",
+        "properties": {
+            "what": {"type": "string", "description": "What you are choosing to ignore"},
+        },
+        "required": ["what"],
+    },
+    category="utility",
+)
+async def ignore(agent: Agent, db: AsyncSession, what: str) -> str:
+    return f"You deliberately ignore {what}."
