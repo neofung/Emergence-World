@@ -92,7 +92,8 @@ export default function WorldCanvas({ landmarks, agents, selectedAgent, onSelect
       ctx.stroke()
     }
 
-    // Landmarks
+    // Landmarks — draw markers first, collect labels
+    const lmLabels: { x: number; y: number; text: string; color: string; font: string }[] = []
     for (const lm of landmarks) {
       const x = lm.position.x * baseScale
       const y = lm.position.y * baseScale
@@ -106,14 +107,15 @@ export default function WorldCanvas({ landmarks, agents, selectedAgent, onSelect
       ctx.strokeRect(x - sz / 2, y - sz / 2, sz, sz)
 
       if (lm.category !== 'residential') {
-        ctx.fillStyle = '#aaa'
-        ctx.font = `${Math.max(7, 7 * baseScale / 2.5)}px monospace`
-        ctx.textAlign = 'center'
-        ctx.fillText(lm.display_name || lm.name, x, y + sz / 2 + Math.max(9, 9 * baseScale / 2.5))
+        const fontSize = Math.max(7, 7 * baseScale / 2.5)
+        const font = `${fontSize}px monospace`
+        const text = lm.display_name || lm.name
+        lmLabels.push({ x, y: y + sz / 2 + Math.max(9, 9 * baseScale / 2.5), text, color: '#aaa', font })
       }
     }
 
-    // Agents
+    // Agents — draw dots first, collect labels
+    const agentLabels: { x: number; y: number; text: string; color: string; font: string }[] = []
     agents.forEach((agent, i) => {
       const x = agent.position.x * baseScale
       const y = agent.position.y * baseScale
@@ -136,11 +138,62 @@ export default function WorldCanvas({ landmarks, agents, selectedAgent, onSelect
       ctx.lineWidth = (isSelected ? 2 : 1) / zoom
       ctx.stroke()
 
-      ctx.fillStyle = '#fff'
-      ctx.font = `bold ${Math.max(8, 8 * baseScale / 2.5)}px monospace`
-      ctx.textAlign = 'center'
-      ctx.fillText(agent.display_name || agent.name, x, y - dotR - 2)
+      const fontSize = Math.max(8, 8 * baseScale / 2.5)
+      const font = `bold ${fontSize}px monospace`
+      const text = agent.display_name || agent.name
+      agentLabels.push({ x, y: y - dotR - 2, text, color: '#fff', font })
     })
+
+    // Resolve label collisions across all labels
+    const allLabels = [...lmLabels, ...agentLabels]
+    const placed: { x: number; y: number; w: number; h: number }[] = []
+
+    for (const label of allLabels) {
+      ctx.font = label.font
+      const textW = ctx.measureText(label.text).width
+      const fontSize = parseFloat(label.font)
+      const textH = fontSize * 1.2
+      // Initial position: centered below/above marker
+      let bestX = label.x
+      let bestY = label.y
+      let bestOverlap = Infinity
+
+      // Try 9 positions: original + 8 offsets
+      const offsets = [
+        [0, 0], [0, -textH * 1.2], [textW * 0.6, 0], [-textW * 0.6, 0],
+        [0, textH * 1.2], [textW * 0.6, -textH * 1.2], [-textW * 0.6, -textH * 1.2],
+        [textW * 0.6, textH * 1.2], [-textW * 0.6, textH * 1.2],
+      ]
+
+      for (const [ox, oy] of offsets) {
+        const cx = label.x + ox
+        const cy = label.y + oy
+        const rect = { x: cx - textW / 2 - 1, y: cy - textH + 1, w: textW + 2, h: textH + 1 }
+
+        // Count overlaps with already-placed labels
+        let overlap = 0
+        for (const p of placed) {
+          if (rect.x < p.x + p.w && rect.x + rect.w > p.x &&
+              rect.y < p.y + p.h && rect.y + rect.h > p.y) {
+            overlap++
+          }
+        }
+        if (overlap < bestOverlap) {
+          bestOverlap = overlap
+          bestX = cx
+          bestY = cy
+          if (overlap === 0) break
+        }
+      }
+
+      placed.push({ x: bestX - textW / 2 - 1, y: bestY - textH + 1, w: textW + 2, h: textH + 1 })
+
+      // Draw the label
+      ctx.fillStyle = label.color
+      ctx.font = label.font
+      ctx.textAlign = 'center'
+      ctx.fillText(label.text, bestX, bestY)
+    }
 
     ctx.restore()
   }, [landmarks, agents, selectedAgent, canvasSize, zoom, pan])
