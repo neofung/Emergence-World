@@ -47,6 +47,9 @@ async def add_todo(agent: Agent, db: AsyncSession, task: str, priority: str = "m
     category="planning",
 )
 async def complete_todo(agent: Agent, db: AsyncSession, task: str) -> str:
+    # Strip [TODO...] prefix if LLM included it
+    if task.startswith("[TODO"):
+        task = task.split("] ", 1)[-1] if "] " in task else task
     result = await db.execute(
         select(LongTermMemory).where(
             LongTermMemory.agent_id == agent.id,
@@ -77,7 +80,9 @@ async def list_todo(agent: Agent, db: AsyncSession, **kwargs) -> str:
         return "No pending tasks."
     lines = []
     for t in todos:
-        lines.append(f"  • {t.content}")
+        # Strip prefix for display: "[TODO:high] task" → "task"
+        task_text = t.content.split("] ", 1)[-1] if "] " in t.content else t.content
+        lines.append(f"  • {task_text}")
     return "To-do list:\n" + "\n".join(lines)
 
 
