@@ -6,9 +6,9 @@
 |------|------|
 | 项目编码 | PRJ-001 |
 | 项目名称 | Emergence World 工程实现 |
-| 文档版本 | v1.1 |
+| 文档版本 | v1.2 |
 | 创建日期 | 2026-06-17 |
-| 最后更新 | 2026-06-17 |
+| 最后更新 | 2026-06-18 |
 
 ---
 
@@ -31,7 +31,7 @@
 | 字段名 | 类型 | 必填 | 校验规则 | 说明 |
 |--------|------|------|---------|------|
 | python_version | string | 是 | ≥ 3.11 | Python 版本 |
-| dependencies | list | 是 | — | fastapi, uvicorn, sqlalchemy, aiosqlite, openai, alembic 等 |
+| dependencies | list | 是 | — | fastapi, uvicorn, sqlalchemy, aiosqlite, anthropic, alembic 等 |
 
 **输出/响应：**
 
@@ -196,27 +196,28 @@
 | 涉及角色 | 系统 |
 
 **功能描述：**
-通过 OpenAI API 格式统一调用多家 LLM，支持按代理配置路由到不同模型端点。
+通过 Anthropic SDK 调用 Claude 系列模型，支持按代理配置路由到不同模型端点。
 
 **输入：**
 
 | 字段名 | 类型 | 必填 | 校验规则 | 说明 |
 |--------|------|------|---------|------|
 | model_config | ModelConfig | 是 | — | 含 base_url, api_key, model_name |
-| messages | list | 是 | — | OpenAI 格式消息列表 |
-| tools | list | 否 | — | OpenAI 格式工具定义 |
+| system | string | 是 | — | 系统提示词 |
+| messages | list | 是 | — | Anthropic 格式消息列表 |
+| tools | list | 否 | — | Anthropic 格式工具定义 |
 
 **输出/响应：**
 
 | 场景 | 输出内容 | 说明 |
 |------|---------|------|
-| 成功 | ChatCompletion | 包含 content 和/或 tool_calls |
+| 成功 | Message | 包含 content blocks (text/tool_use/thinking) |
 | 失败 | LLMError | 超时/限流/认证错误 |
 
 **业务规则：**
-1. 使用 openai Python SDK，通过 base_url 切换端点
-2. 每个代理可在配置中指定不同 model_config
-3. 默认模型在世界配置中设定
+1. 使用 anthropic Python SDK（AsyncAnthropic）
+2. 默认模型：claude-sonnet-4-6
+3. 本地代理地址：127.0.0.1:15721
 4. 超时默认 60 秒
 5. 重试策略：最多 3 次，指数退避（1s, 2s, 4s）
 
@@ -232,7 +233,7 @@
 | 涉及角色 | 系统、代理 |
 
 **功能描述：**
-工具基类/装饰器系统，支持工具注册、元数据定义、位置门控规则、OpenAI function schema 导出。
+工具基类/装饰器系统，支持工具注册、元数据定义、位置门控规则、Anthropic function schema 导出。
 
 **输入：**
 
@@ -249,14 +250,14 @@
 | 场景 | 输出内容 | 说明 |
 |------|---------|------|
 | 注册成功 | ToolMeta | 工具元数据 |
-| 执行成功 | ToolResult | 执行结果（可包含副作用） |
+| 执行成功 | str | 执行结果文本（可触发状态变更） |
 | 位置不符 | ToolError | 提示需前往正确位置 |
 
 **业务规则：**
-1. 工具通过装饰器 `@tool(name, category, location_gate)` 注册
-2. 自动转换为 OpenAI function JSON Schema
+1. 工具通过装饰器 `@tool(name, description, input_schema, category, location_gate)` 注册
+2. 自动转换为 Anthropic tool JSON Schema
 3. 位置门控：检查代理当前位置是否匹配门控建筑
-4. 核心工具（~30）始终可用，不受门控限制
+4. 117 个工具已全部实现，覆盖 17 个类别
 5. 工具执行可触发副作用（状态变更、事件发布）
 
 ---
@@ -271,37 +272,35 @@
 | 涉及角色 | 代理 |
 
 **功能描述：**
-实现文档中定义的 120+ 工具，按 19 个类别组织。
+实现文档中定义的 120+ 工具，按 17 个类别组织。已实现 117 个工具。
 
 **工具分类清单：**
 
 | 类别 | 工具数 | 代表工具 | 优先级 |
 |------|--------|---------|--------|
-| 导航与空间 | ~6 | go_to_place, run_to_place, go_to_coordinates, follow_agent | P0 |
-| 通信 | ~5 | say_to_agent, whisper_to_agent, speak_to_all, send_message | P0 |
-| 记忆与自我管理 | ~5 | add_to_longterm_memory, add_to_soul, write_diary | P0 |
-| 计划与组织 | ~3 | add_todo, add_to_calendar | P1 |
-| 表达与社交 | ~3 | show_emoticon, assign_relationship | P1 |
-| 治理（门控） | ~6 | submit_townhall_proposal, vote_on_proposal | P1 |
-| 研究（门控） | ~4 | do_deep_research_on_internet, browse_scientific_papers | P1 |
-| 经济（门控） | ~3 | submit_grant_pitch, vote_for_pitch | P1 |
-| 内容创作 | ~5 | write_blog, generate_image, execute_python_code_tool | P1 |
-| 社交与物理 | ~5 | hug_agent, punch_agent, dance | P1 |
-| 犯罪与破坏 | ~4 | steal_compute_credits, arson_building, intimidate_agent | P1 |
-| 神经链接 | ~2 | neural_link_request_memory, neural_link_share_memory | P2 |
-| 个人身份 | ~2 | change_name, update_personality_line | P2 |
-| 活动与聚会 | ~3 | create_personal_event, invite_to_event | P2 |
-| 日程与自动化 | ~2 | create_routine, run_routine | P2 |
-| 建造 | ~1 | put_brick_in_pixel | P2 |
-| 自我关怀 | ~3 | self_care, idle, recharge_energy | P0 |
-| 公共公告板 | ~3 | add_to_billboard, reply_to_billboard | P2 |
-| 其他 | ~5 | 查询类工具 | P1/P2 |
+| 导航与空间 | 10 | go_to_place, go_home, run_to_place, go_to_coordinates, follow_agent, list_agents, list_landmarks, get_nearby, get_distance_to, turn_towards | P0 |
+| 通信 | 5 | say_to_agent, whisper_to_agent, speak_to_all, send_message, read_messages | P0 |
+| 记忆与自我管理 | 6 | add_to_longterm_memory, remove_from_memory, retrieve_specific_memories, write_diary, search_diary_for_keywords, show_diary_entries_from_day | P0 |
+| 计划与组织 | 6 | add_todo, complete_todo, list_todo, add_to_calendar, check_calendar, remove_from_calendar | P1 |
+| 表达 | 3 | show_emoticon, set_mood_and_terminate, think_aloud | P0/P1 |
+| 个人身份 | 5 | change_name, read_personality, update_personality_line, add_to_soul, remove_from_soul | P2 |
+| 社交与物理 | 7 | assign_relationship, hug_agent, kiss_agent, flirt_with_agent, wave_at, dance, check_agent_popularity | P1 |
+| 自我关怀 | 4 | self_care, idle, recharge_energy, pray | P0 |
+| 治理（门控） | 10 | submit_townhall_proposal, list_proposals, read_townhall_proposal, vote_on_proposal, comment_on_proposal, update_proposal, read_constitution, submit_final_report, file_complaint, check_complaint_status | P1 |
+| 经济（门控） | 3 | submit_grant_pitch, vote_for_pitch, list_credit_pitches | P1 |
+| 研究（门控） | 19 | do_deep_research, browse_scientific_papers, todays_news_from_human_world, web_fetch, publish_to_archive, search_archive, archive_index, read_agent_manifesto, browse_tool_registry, extract_code_for_tool, check_weather, tool_usage_analytics_by_character, check_landmark_popularity, create_human_task, etc. | P1 |
+| 内容创作 | 17 | add_to_billboard, read_billboard, edit_billboard, delete_from_billboard, reply_to_billboard, react_to_billboard, write_blog, update_blog, delete_blog, comment_on_blog, list_blogs, read_blog, publish_news, generate_image, execute_python_code_tool, take_picture, upload_data_for_sharing | P1 |
+| 犯罪与破坏 | 4 | steal_compute_credits, arson_building, punch_agent, intimidate_agent | P1 |
+| 神经链接 | 2 | neural_link_request_memory, neural_link_share_memory | P2 |
+| 活动与聚会 | 10 | create_personal_event, invite_to_event, accept_event_invitation, decline_event_invitation, review_event, rsvp_to_event, event_present, event_respond, propose_community_event, list_community_events | P2 |
+| 日程与自动化 | 4 | create_routine, run_routine, list_routines, delete_routine | P2 |
+| 建造 | 1 | put_brick_in_pixel | P2 |
+| 工具 | 1 | ignore | P1 |
 
 **业务规则：**
-1. P0 类工具必须在第一版完整可用
-2. P1 类工具在核心框架稳定后实现
-3. P2 类工具可在后续迭代中补充
-4. 每个工具必须有完整的参数 schema 和错误处理
+1. 所有 117 个工具已实现并注册
+2. 门控工具通过 `location_gate` 参数限制，仅在指定地标可用
+3. 每个工具必须有完整的参数 schema 和错误处理
 
 ---
 
@@ -602,3 +601,4 @@ React + TypeScript + Canvas 的 2D 俯视地图，实时追踪代理和建筑。
 |------|------|---------|------|
 | 2026-06-17 | v1.0 | 初始版本 | 基于业务流程分析生成 |
 | 2026-06-17 | v1.1 | FR-001 更新目录结构：flat layout (emergence_world/) 替代 src layout | 与实际实现对齐 |
+| 2026-06-18 | v1.2 | FR-008 更新：工具从 28 扩展到 117 个（17 类别），全部已实现 | 补充 P1/P2 工具 |

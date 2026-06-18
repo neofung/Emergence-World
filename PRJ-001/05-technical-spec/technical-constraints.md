@@ -43,10 +43,10 @@
 
 | 编号 | 对接系统 | 集成方式 | 约束描述 | 是否可协商 |
 |------|---------|---------|---------|-----------|
-| TC-INT-001 | Claude API | OpenAI 兼容端点 | 通过 base_url 切换到 Anthropic 兼容端点 | 否 |
-| TC-INT-002 | Gemini API | OpenAI 兼容端点 | Google 提供 OpenAI 兼容端点 | 否 |
-| TC-INT-003 | GPT API | OpenAI 原生 | 直接使用 OpenAI SDK | 否 |
-| TC-INT-004 | Grok API | OpenAI 兼容端点 | xAI 提供 OpenAI 兼容端点 | 否 |
+| TC-INT-001 | Claude API | Anthropic SDK（原生） | 通过 anthropic.AsyncAnthropic 调用，本地代理 127.0.0.1:15721 | 是（已实现） |
+| TC-INT-002 | Gemini API | OpenAI 兼容端点 | Google 提供 OpenAI 兼容端点（未来扩展） | 否 |
+| TC-INT-003 | GPT API | OpenAI 原生 | 直接使用 OpenAI SDK（未来扩展） | 否 |
+| TC-INT-004 | Grok API | OpenAI 兼容端点 | xAI 提供 OpenAI 兼容端点（未来扩展） | 否 |
 | TC-INT-005 | 前端-后端通信 | WebSocket + REST | 实时事件推送用 WS，控制命令用 REST | 是（可选 SSE） |
 
 ## 合规与法规约束

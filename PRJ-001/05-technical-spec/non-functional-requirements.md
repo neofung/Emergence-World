@@ -59,7 +59,7 @@
 | NFR-COM-001 | Python 版本兼容 | Python | ≥ 3.11 | P0 |
 | NFR-COM-002 | 操作系统兼容 | macOS / Linux | 主要开发和运行环境 | P0 |
 | NFR-COM-003 | 浏览器兼容（2D 前端） | Chrome / Firefox / Safari | 最新两个主版本 | P3 |
-| NFR-COM-004 | OpenAI API 兼容 | OpenAI SDK | ≥ 1.0 | P0 |
+| NFR-COM-004 | Anthropic API 兼容 | anthropic SDK | ≥ 1.0 | P0 |
 
 ## 可维护性
 
