@@ -112,3 +112,24 @@ Emergence-World/
 uv run alembic current
 uv run alembic upgrade head
 ```
+
+## 重置世界
+
+清空数据库并重建全新世界（含种子数据）：
+
+```bash
+# 删除数据库
+rm -f emergence_world/backend/data/emergence.db
+
+# 重启后端（自动重建表 + 加载种子数据）
+uv run uvicorn emergence_world.backend.main:app --host 127.0.0.1 --port 8000
+```
+
+切换语言（在 `emergence_world/.env` 中修改）：
+
+```bash
+LANGUAGE=zh_cn   # 中文（默认）
+LANGUAGE=en      # 英文
+```
+
+修改后删除数据库重启即可生效。
