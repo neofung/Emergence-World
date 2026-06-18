@@ -129,6 +129,7 @@ class SimulationEngine:
             current_time=str(self._world_state.current_time) if self._world_state else "unknown",
             weather=self._world_state.current_weather if self._world_state else "clear",
             day_count=self._world_state.day_count if self._world_state else 1,
+            language=settings.language,
         )
 
         # 4. Tools from registry
