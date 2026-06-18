@@ -4,7 +4,7 @@ import uuid
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,12 +13,14 @@ from emergence_world.backend.config import get_settings
 from emergence_world.backend.core.engine import SimulationEngine
 from emergence_world.backend.core.llm import LLMClient
 from emergence_world.backend.database import async_session, engine, get_db
+from emergence_world.backend.logging_config import setup_logging
 from emergence_world.backend.models import Agent, Base, ConstitutionArticle, Landmark, WorldState
 from emergence_world.backend.seed.loader import seed_database
 
 settings = get_settings()
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
+setup_logging()
 logger = logging.getLogger(__name__)
+access_logger = logging.getLogger("access")
 
 # Global simulation state
 _sim_engine: SimulationEngine | None = None
@@ -64,6 +66,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    response = await call_next(request)
+    access_logger.info(f"{request.method} {request.url.path} → {response.status_code}")
+    return response
 
 
 # --- Health ---

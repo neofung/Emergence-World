@@ -32,6 +32,9 @@ emergence_world/backend/data/*.db
 emergence_world/backend/data/*.db-journal
 emergence_world/backend/data/*.db-wal
 
+# Logs
+emergence_world/backend/data/logs/
+
 # Alembic
 emergence_world/backend/alembic/versions/*.py.bak
 
