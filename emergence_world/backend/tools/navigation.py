@@ -8,6 +8,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from emergence_world.backend.models import Agent, Landmark
 from emergence_world.backend.tools.registry import tool
 
+
+async def _find_landmark(db: AsyncSession, name: str) -> Landmark | None:
+    """Find a landmark by exact or partial match."""
+    # Try exact match first
+    result = await db.execute(select(Landmark).where(Landmark.name.ilike(name)))
+    lm = result.scalar_one_or_none()
+    if lm:
+        return lm
+    # Partial match
+    result = await db.execute(select(Landmark).where(Landmark.name.ilike(f"%{name}%")))
+    return result.scalars().first()
+
 logger = logging.getLogger(__name__)
 
 
@@ -24,8 +36,7 @@ logger = logging.getLogger(__name__)
     category="navigation",
 )
 async def run_to_place(agent: Agent, db: AsyncSession, place: str) -> str:
-    result = await db.execute(select(Landmark).where(Landmark.name.ilike(place)))
-    landmark = result.scalar_one_or_none()
+    landmark = await _find_landmark(db, place)
     if not landmark:
         return f"Error: Landmark '{place}' not found."
     if not landmark.is_open:
@@ -125,8 +136,7 @@ async def go_to_coordinates(agent: Agent, db: AsyncSession, x: float, z: float) 
 )
 async def get_distance_to(agent: Agent, db: AsyncSession, target: str) -> str:
     # Try landmark first
-    result = await db.execute(select(Landmark).where(Landmark.name.ilike(target)))
-    lm = result.scalar_one_or_none()
+    lm = await _find_landmark(db, target)
     if lm:
         dx = lm.position_x - agent.position_x
         dz = lm.position_z - agent.position_z

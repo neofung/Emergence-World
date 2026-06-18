@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from emergence_world.backend.models import Agent, Conversation, DiaryEntry, Landmark, LongTermMemory
+from emergence_world.backend.tools.navigation import _find_landmark
 from emergence_world.backend.tools.registry import tool
 
 logger = logging.getLogger(__name__)
@@ -25,8 +26,7 @@ logger = logging.getLogger(__name__)
     category="navigation",
 )
 async def go_to_place(agent: Agent, db: AsyncSession, place: str) -> str:
-    result = await db.execute(select(Landmark).where(Landmark.name.ilike(place)))
-    landmark = result.scalar_one_or_none()
+    landmark = await _find_landmark(db, place)
     if not landmark:
         return f"Error: Landmark '{place}' not found."
     if not landmark.is_open:
