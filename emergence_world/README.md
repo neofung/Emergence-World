@@ -109,6 +109,6 @@ Emergence-World/
 ## Alembic
 
 ```bash
-uv run alembic -c emergence_world/alembic.ini current
-uv run alembic -c emergence_world/alembic.ini upgrade head
+uv run alembic current
+uv run alembic upgrade head
 ```
