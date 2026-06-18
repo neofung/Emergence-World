@@ -43,4 +43,4 @@ select = ["E", "F", "I", "N", "W", "UP"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["emergence_world/tests"]
+testpaths = ["emergence_world/backend/tests"]

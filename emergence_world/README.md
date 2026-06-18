@@ -6,92 +6,84 @@ AI 社会模拟平台 — 基于 Emergence World 研究项目的工程实现。
 
 | 层级 | 技术 |
 |------|------|
-| 语言 | Python 3.11+ |
-| 包管理 | uv |
-| Web 框架 | FastAPI + Uvicorn |
-| 数据库 | SQLite (开发期) / PostgreSQL (生产) |
-| ORM | SQLAlchemy 2.0 (async) |
-| 迁移 | Alembic |
-| LLM 接入 | Anthropic SDK（本地代理） |
+| 后端 | Python 3.11+ / uv / FastAPI / SQLAlchemy 2.0 / SQLite |
 | 前端 | React 19 + TypeScript + Vite + Canvas 2D |
-| 配置 | pydantic-settings |
+| LLM | Anthropic SDK（本地代理） |
+| 迁移 | Alembic |
 
 ## 快速开始
 
-以下命令均在项目根目录 `Emergence-World/` 下执行。
-
-### 1. 安装依赖
-
 ```bash
-# 后端
+# 安装依赖
 uv sync
-
-# 前端
 cd emergence_world/frontend && npm install
-```
 
-### 2. 配置环境变量
-
-```bash
+# 配置环境变量
 cp emergence_world/.env.example emergence_world/.env
-# 编辑 .env，填入 LLM 配置
-```
 
-### 3. 启动后端
+# 启动后端
+uv run uvicorn emergence_world.backend.main:app --host 127.0.0.1 --port 8000
 
-```bash
-uv run uvicorn emergence_world.main:app --host 127.0.0.1 --port 8000
-```
-
-### 4. 启动前端（新终端）
-
-```bash
+# 启动前端（新终端）
 cd emergence_world/frontend && npm run dev
 # 打开 http://localhost:5173
 ```
 
-### 5. 启动模拟
+## 项目结构
 
-```bash
-curl -X POST http://127.0.0.1:8000/api/v1/simulation/start
+```
+Emergence-World/
+├── pyproject.toml
+├── emergence_world/
+│   ├── README.md
+│   │
+│   ├── backend/                    # 后端（Python）
+│   │   ├── main.py                 # FastAPI 入口 + API
+│   │   ├── config.py               # 配置
+│   │   ├── database.py             # 数据库引擎
+│   │   ├── models/                 # 16 个 ORM 模型
+│   │   ├── seed/                   # 种子数据
+│   │   ├── core/                   # 模拟引擎
+│   │   │   ├── engine.py           # 主循环 + 工具执行
+│   │   │   ├── scheduler.py        # 调度器
+│   │   │   ├── llm.py              # Anthropic 客户端
+│   │   │   └── awi.py              # AWI 指标
+│   │   ├── agents/prompt.py        # 提示词构建器
+│   │   ├── tools/                  # 28 个工具
+│   │   ├── ui/console.py           # 终端控制台
+│   │   ├── alembic/                # 数据库迁移
+│   │   ├── data/                   # SQLite（gitignored）
+│   │   └── tests/
+│   │
+│   └── frontend/                   # 前端（React）
+│       ├── package.json
+│       └── src/
+│           ├── WorldCanvas.tsx     # Canvas 地图
+│           ├── Sidebar.tsx         # 代理列表 + 对话
+│           └── ControlPanel.tsx    # 模拟控制
+│
+├── docs/                           # 系统设计文档
+├── agent_profiles/                 # 代理档案
+├── landmarks/                      # 地标描述
+└── PRJ-001/                        # 需求分析
 ```
 
 ## API 端点
 
-### 世界数据
-
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | GET | `/health` | 健康检查 |
-| GET | `/api/v1/world/state` | 世界状态 |
-| GET | `/api/v1/agents` | 代理列表 (JSON) |
-| GET | `/api/v1/agents/{id}` | 代理详情 (JSON) |
-| GET | `/api/v1/landmarks` | 地标列表 (JSON) |
-| GET | `/api/v1/constitution` | 宪法条目 |
-| GET | `/api/v1/metrics/awi` | AWI 指标（9 个） |
-
-### 模拟控制
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
+| GET | `/api/v1/agents` | 代理列表 |
+| GET | `/api/v1/landmarks` | 地标列表 |
+| GET | `/api/v1/constitution` | 宪法 |
+| GET | `/api/v1/metrics/awi` | AWI 指标 |
 | POST | `/api/v1/simulation/start` | 启动模拟 |
 | POST | `/api/v1/simulation/pause` | 暂停 |
 | POST | `/api/v1/simulation/resume` | 恢复 |
 | POST | `/api/v1/simulation/stop` | 停止 |
-| GET | `/api/v1/simulation/status` | 模拟状态 |
+| GET | `/api/v1/console/*` | 终端控制台视图 |
 
-### 终端控制台
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/v1/console/status` | 世界状态概览 |
-| GET | `/api/v1/console/agents` | 代理状态表 |
-| GET | `/api/v1/console/agent/{name}` | 单个代理详情 |
-| GET | `/api/v1/console/landmarks` | 地标列表 |
-| GET | `/api/v1/console/conversations` | 最近对话 |
-| GET | `/api/v1/console/proposals` | 治理提案 |
-
-## 已实现工具（28 个）
+## 工具（28 个）
 
 | 类别 | 工具 |
 |------|------|
@@ -106,84 +98,9 @@ curl -X POST http://127.0.0.1:8000/api/v1/simulation/start
 | 内容 | add_to_billboard, read_billboard, write_blog, publish_news, do_deep_research, browse_scientific_papers |
 | 犯罪 | steal_compute_credits, arson_building, intimidate_agent |
 
-## 2D 可视化前端
-
-- 600×600 Canvas 显示 240×240 世界地图
-- 34 个地标按类别着色（住宅绿/商业棕/市政蓝/休闲深绿/娱乐紫/地标黄）
-- 代理显示为彩色圆点，点击查看详情
-- 侧边栏：代理 E/K/I 需求条 + 对话记录
-- 控制面板：Start/Pause/Resume/Stop 按钮
-- 每 2 秒自动刷新数据
-
-## 项目结构
-
-```
-Emergence-World/
-├── pyproject.toml                  # 项目配置和依赖
-├── uv.lock                         # 依赖锁定文件
-├── emergence_world/                # 主包（后端 + 前端）
-│   ├── alembic.ini                 # Alembic 迁移配置
-│   ├── .env.example                # 环境变量模板
-│   ├── .env                        # 环境变量（gitignored）
-│   │
-│   ├── main.py                     # FastAPI 入口 + API 端点
-│   ├── config.py                   # pydantic-settings 配置
-│   ├── database.py                 # 数据库引擎和会话
-│   ├── models/                     # 16 个 ORM 模型
-│   ├── seed/                       # 种子数据（34 地标 + 13 代理 + 5 宪法）
-│   ├── core/                       # 模拟引擎
-│   │   ├── engine.py               # 主循环 + 多轮工具执行
-│   │   ├── scheduler.py            # 轮询调度 + Boost Queue
-│   │   ├── llm.py                  # Anthropic API 客户端
-│   │   └── awi.py                  # AWI 指标计算（9 个）
-│   ├── agents/
-│   │   └── prompt.py               # 代理系统提示词构建器
-│   ├── tools/                      # 工具框架（28 个工具）
-│   │   ├── registry.py             # @tool 装饰器 + 注册表
-│   │   ├── core.py                 # 核心工具
-│   │   ├── navigation.py           # 导航 + 生存
-│   │   ├── social.py               # 社交通信
-│   │   ├── governance.py           # 治理经济
-│   │   ├── content.py              # 内容创作
-│   │   └── crime.py                # 犯罪
-│   ├── ui/
-│   │   └── console.py              # 终端控制台
-│   ├── data/                       # SQLite 数据库（gitignored）
-│   ├── alembic/                    # 数据库迁移脚本
-│   ├── tests/                      # 测试（待实现）
-│   │
-│   └── frontend/                   # 2D 可视化前端
-│       ├── package.json            # React + TypeScript + Vite
-│       ├── vite.config.ts          # 代理 /api → localhost:8000
-│       └── src/
-│           ├── main.tsx            # 入口
-│           ├── App.tsx             # 主布局
-│           ├── WorldCanvas.tsx     # Canvas 世界渲染
-│           ├── Sidebar.tsx         # 代理列表 + 对话
-│           ├── ControlPanel.tsx    # 模拟控制
-│           ├── api.ts              # API 封装
-│           ├── hooks.ts            # 轮询 hooks
-│           └── types.ts            # TypeScript 类型
-│
-├── docs/                           # 系统设计文档
-├── agent_profiles/                 # 代理档案
-├── landmarks/                      # 地标描述（34 个 .md）
-├── data/                           # 宪法、宣言等数据
-└── PRJ-001/                        # 需求分析文档
-```
-
-## Alembic 数据库迁移
+## Alembic
 
 ```bash
-# 查看当前迁移版本
 uv run alembic -c emergence_world/alembic.ini current
-
-# 自动生成迁移脚本
-uv run alembic -c emergence_world/alembic.ini revision --autogenerate -m "描述信息"
-
-# 执行迁移
 uv run alembic -c emergence_world/alembic.ini upgrade head
-
-# 回滚一个版本
-uv run alembic -c emergence_world/alembic.ini downgrade -1
 ```

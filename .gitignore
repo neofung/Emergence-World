@@ -28,12 +28,12 @@ venv/
 .env.local
 
 # Database (generated at runtime)
-emergence_world/data/*.db
-emergence_world/data/*.db-journal
-emergence_world/data/*.db-wal
+emergence_world/backend/data/*.db
+emergence_world/backend/data/*.db-journal
+emergence_world/backend/data/*.db-wal
 
 # Alembic
-emergence_world/alembic/versions/*.py.bak
+emergence_world/backend/alembic/versions/*.py.bak
 
 # Mypy
 .mypy_cache/
@@ -41,10 +41,10 @@ emergence_world/alembic/versions/*.py.bak
 # Pytest
 .pytest_cache/
 
-# Node.js (future 2D frontend)
-node_modules/
-frontend/dist/
-frontend/build/
+# Node.js
+emergence_world/frontend/node_modules/
+emergence_world/frontend/dist/
+emergence_world/frontend/build/
 
 # OS
 .DS_Store
