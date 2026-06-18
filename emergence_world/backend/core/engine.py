@@ -260,6 +260,8 @@ class SimulationEngine:
             self._world_state.day_count = new_day
             logger.info(f"=== Day {new_day} ===")
 
+        await self.db.commit()
+
     @staticmethod
     async def _sleep(seconds: float) -> None:
         import asyncio
