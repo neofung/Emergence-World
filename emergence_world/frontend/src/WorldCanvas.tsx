@@ -164,30 +164,42 @@ export default function WorldCanvas({ landmarks, agents, selectedAgent, onSelect
     })
 
     // Iterative repulsion — push overlapping labels apart
-    const maxIter = 20
+    const maxIter = 30
+    const maxDrift = 60 // max px a label can drift from its anchor
     for (let iter = 0; iter < maxIter; iter++) {
       let moved = false
       for (let i = 0; i < rects.length; i++) {
         for (let j = i + 1; j < rects.length; j++) {
           const a = rects[i], b = rects[j]
-          // Check overlap
           const overlapX = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)
           const overlapY = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y)
           if (overlapX > 0 && overlapY > 0) {
             moved = true
-            // Push apart along the axis of least overlap
             if (overlapX < overlapY) {
               const push = overlapX / 2 + 1
-              const dir = a.x < b.x ? -1 : 1
+              const dir = (a.x + a.w / 2) < (b.x + b.w / 2) ? -1 : 1
               a.x += dir * push
               b.x -= dir * push
             } else {
               const push = overlapY / 2 + 1
-              const dir = a.y < b.y ? -1 : 1
+              const dir = (a.y + a.h / 2) < (b.y + b.h / 2) ? -1 : 1
               a.y += dir * push
               b.y -= dir * push
             }
           }
+        }
+      }
+      // Clamp drift so labels stay near their anchors
+      for (const r of rects) {
+        const cx = r.x + r.w / 2
+        const cy = r.y + r.h / 2
+        const dx = cx - r.anchorX
+        const dy = cy - r.anchorY
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        if (dist > maxDrift) {
+          const scale = maxDrift / dist
+          r.x = r.anchorX + dx * scale - r.w / 2
+          r.y = r.anchorY + dy * scale - r.h / 2
         }
       }
       if (!moved) break
