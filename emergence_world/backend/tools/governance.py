@@ -2,7 +2,7 @@
 
 import logging
 
-from sqlalchemy import select
+from sqlalchemy import String, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from emergence_world.backend.models import (
@@ -200,7 +200,7 @@ async def read_townhall_proposal(agent: Agent, db: AsyncSession, proposal_id: st
     except ValueError:
         # Try prefix match
         result = await db.execute(
-            select(Proposal).where(Proposal.id.cast(str).ilike(f"{proposal_id}%"))
+            select(Proposal).where(Proposal.id.cast(String).ilike(f"{proposal_id}%"))
         )
         proposal = result.scalar_one_or_none()
         if not proposal:
