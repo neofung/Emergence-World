@@ -474,7 +474,9 @@ async def list_blogs(agent: Agent, db: AsyncSession, **kwargs) -> str:
         return "No blog posts found."
     lines = []
     for b in blogs:
-        lines.append(f"  • {b.content[:80]}")
+        # Extract title from "[BLOG DRAFT] title: content" or "[BLOG PUBLISHED] title: content"
+        title = b.content.split("] ", 1)[-1].split(": ", 1)[0] if "] " in b.content else b.content[:50]
+        lines.append(f"  • {title}")
     return "Blogs:\n" + "\n".join(lines)
 
 
@@ -491,6 +493,9 @@ async def list_blogs(agent: Agent, db: AsyncSession, **kwargs) -> str:
     category="content",
 )
 async def read_blog(agent: Agent, db: AsyncSession, title: str = "") -> str:
+    # Strip [BLOG ...] prefix if LLM included it
+    if title.startswith("[BLOG"):
+        title = title.split("] ", 1)[-1] if "] " in title else title
     if not title:
         # No title provided — show latest blog
         result = await db.execute(
