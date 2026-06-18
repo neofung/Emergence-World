@@ -37,13 +37,15 @@
 
 | 场景 | 输出内容 | 说明 |
 |------|---------|------|
-| 成功 | 可运行的项目结构 | emergence_world/ 包目录（含 models, core, agents, tools 等子模块），pyproject.toml 在项目根目录 |
+| 成功 | 可运行的项目结构 | emergence_world/backend/（后端 Python）+ emergence_world/frontend/（React 前端） |
 
 **业务规则：**
-1. 目录结构：emergence_world/{core, agents, tools, memory, world, economy, governance, social, ui, models, alembic, tests}
-2. pyproject.toml、uv.lock、.venv 在项目根目录
-3. alembic.ini 和 .env.example 在 emergence_world/ 内
-4. 测试框架：pytest
+1. 后端目录：emergence_world/backend/{core, agents, tools, models, seed, ui, alembic, data, tests}
+2. 前端目录：emergence_world/frontend/{src/}
+3. pyproject.toml、uv.lock、.venv 在项目根目录
+4. alembic.ini 和 .env 在 emergence_world/ 内
+5. 启动命令：`uvicorn emergence_world.backend.main:app`
+6. 测试框架：pytest
 
 ---
 
