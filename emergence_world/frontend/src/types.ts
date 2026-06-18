@@ -18,9 +18,12 @@ export interface Landmark {
   name: string
   display_name: string
   tagline: string
+  description: string
   category: string
   position: { x: number; y: number; z: number }
   is_open: boolean
+  folklore: string
+  fun_fact: string
   location_gated_tools: string[]
 }
 

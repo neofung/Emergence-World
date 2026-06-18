@@ -9,6 +9,16 @@ export default function App() {
   const landmarks = useLandmarks()
   const simStatus = useSimStatus()
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null)
+  const [selectedLandmark, setSelectedLandmark] = useState<string | null>(null)
+
+  const handleSelectAgent = (name: string | null) => {
+    setSelectedAgent(name)
+    if (name) setSelectedLandmark(null)
+  }
+  const handleSelectLandmark = (name: string | null) => {
+    setSelectedLandmark(name)
+    if (name) setSelectedAgent(null)
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', gap: 8, padding: 8 }}>
@@ -18,12 +28,16 @@ export default function App() {
           landmarks={landmarks}
           agents={agents}
           selectedAgent={selectedAgent}
-          onSelectAgent={setSelectedAgent}
+          selectedLandmark={selectedLandmark}
+          onSelectAgent={handleSelectAgent}
+          onSelectLandmark={handleSelectLandmark}
         />
         <Sidebar
           agents={agents}
+          landmarks={landmarks}
           selectedAgent={selectedAgent}
-          onSelectAgent={setSelectedAgent}
+          selectedLandmark={selectedLandmark}
+          onSelectAgent={handleSelectAgent}
         />
       </div>
     </div>

@@ -26,10 +26,12 @@ interface Props {
   landmarks: Landmark[]
   agents: Agent[]
   selectedAgent: string | null
+  selectedLandmark: string | null
   onSelectAgent: (name: string | null) => void
+  onSelectLandmark: (name: string | null) => void
 }
 
-export default function WorldCanvas({ landmarks, agents, selectedAgent, onSelectAgent }: Props) {
+export default function WorldCanvas({ landmarks, agents, selectedAgent, selectedLandmark, onSelectAgent, onSelectLandmark }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [canvasSize, setCanvasSize] = useState({ w: 600, h: 600 })
@@ -98,12 +100,14 @@ export default function WorldCanvas({ landmarks, agents, selectedAgent, onSelect
       const x = lm.position.x * baseScale
       const y = lm.position.y * baseScale
       const sz = (lm.category === 'residential' ? 8 : 14) * (baseScale / 2.5)
+      const isLmSelected = lm.name === selectedLandmark
+
       ctx.fillStyle = lm.is_open
         ? (CATEGORY_COLORS[lm.category] || '#555')
         : '#ff4444'
       ctx.fillRect(x - sz / 2, y - sz / 2, sz, sz)
-      ctx.strokeStyle = lm.is_open ? '#888' : '#ff0000'
-      ctx.lineWidth = 1 / zoom
+      ctx.strokeStyle = isLmSelected ? '#fff' : (lm.is_open ? '#888' : '#ff0000')
+      ctx.lineWidth = isLmSelected ? 2 / zoom : 1 / zoom
       ctx.strokeRect(x - sz / 2, y - sz / 2, sz, sz)
 
       if (lm.category !== 'residential') {
@@ -214,7 +218,7 @@ export default function WorldCanvas({ landmarks, agents, selectedAgent, onSelect
     }
 
     ctx.restore()
-  }, [landmarks, agents, selectedAgent, canvasSize, zoom, pan])
+  }, [landmarks, agents, selectedAgent, selectedLandmark, canvasSize, zoom, pan])
 
   useEffect(() => { draw() }, [draw])
 
@@ -262,7 +266,7 @@ export default function WorldCanvas({ landmarks, agents, selectedAgent, onSelect
     setDragging(false)
   }, [])
 
-  // Click to select agent (only if not dragging)
+  // Click to select agent or landmark (only if not dragging)
   const handleClick = useCallback((e: React.MouseEvent) => {
     if (dragRef.current?.moved) return
 
@@ -273,7 +277,8 @@ export default function WorldCanvas({ landmarks, agents, selectedAgent, onSelect
     const mx = (e.clientX - rect.left - pan.x - offsetX) / zoom
     const my = (e.clientY - rect.top - pan.y - offsetY) / zoom
 
-    let closest: string | null = null
+    // Check agents first
+    let closestAgent: string | null = null
     let minDist = 15 * (baseScale / 2.5)
     for (const agent of agents) {
       const ax = agent.position.x * baseScale
@@ -281,11 +286,28 @@ export default function WorldCanvas({ landmarks, agents, selectedAgent, onSelect
       const dist = Math.sqrt((mx - ax) ** 2 + (my - ay) ** 2)
       if (dist < minDist) {
         minDist = dist
-        closest = agent.name
+        closestAgent = agent.name
       }
     }
-    onSelectAgent(closest)
-  }, [agents, onSelectAgent, canvasSize, zoom, pan])
+    if (closestAgent) {
+      onSelectAgent(closestAgent)
+      return
+    }
+
+    // Check landmarks
+    let closestLm: string | null = null
+    let minLmDist = 20 * (baseScale / 2.5)
+    for (const lm of landmarks) {
+      const lx = lm.position.x * baseScale
+      const ly = lm.position.y * baseScale
+      const dist = Math.sqrt((mx - lx) ** 2 + (my - ly) ** 2)
+      if (dist < minLmDist) {
+        minLmDist = dist
+        closestLm = lm.name
+      }
+    }
+    onSelectLandmark(closestLm)
+  }, [agents, landmarks, onSelectAgent, onSelectLandmark, canvasSize, zoom, pan])
 
   // Zoom helpers
   const zoomTo = useCallback((target: number, center?: { x: number; y: number }) => {

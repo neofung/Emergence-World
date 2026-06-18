@@ -1,11 +1,13 @@
 import { useState, useMemo } from 'react'
-import type { Agent } from './types'
+import type { Agent, Landmark } from './types'
 import { useConversations, useAgentDetail } from './hooks'
 import { AGENT_COLORS } from './colors'
 
 interface Props {
   agents: Agent[]
+  landmarks: Landmark[]
   selectedAgent: string | null
+  selectedLandmark: string | null
   onSelectAgent: (name: string | null) => void
 }
 
@@ -33,7 +35,7 @@ function colorize(text: string, colorMap: Record<string, string>, nameMap: Recor
   })
 }
 
-export default function Sidebar({ agents, selectedAgent, onSelectAgent }: Props) {
+export default function Sidebar({ agents, landmarks, selectedAgent, selectedLandmark, onSelectAgent }: Props) {
   const convos = useConversations()
   const { detail } = useAgentDetail(selectedAgent)
   const [agentsOpen, setAgentsOpen] = useState(true)
@@ -96,6 +98,25 @@ export default function Sidebar({ agents, selectedAgent, onSelectAgent }: Props)
           <pre style={{ fontSize: 10, whiteSpace: 'pre-wrap', color: '#ccc', lineHeight: 1.4, maxHeight: 120, overflow: 'auto' }}>{detail}</pre>
         </div>
       )}
+
+      {/* Selected Landmark Detail */}
+      {selectedLandmark && (() => {
+        const lm = landmarks.find(l => l.name === selectedLandmark)
+        if (!lm) return null
+        return (
+          <div style={{ background: '#16213e', borderRadius: 6, padding: 8, flexShrink: 0 }}>
+            <h3 style={{ fontSize: 13, marginBottom: 4, color: '#4d96ff' }}>{lm.display_name || lm.name}</h3>
+            <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>{lm.tagline}</div>
+            <div style={{ fontSize: 10, color: lm.is_open ? '#6bcb77' : '#ff6b6b', marginBottom: 4 }}>{lm.is_open ? '开放' : '关闭'} · {lm.category}</div>
+            {lm.description && <div style={{ fontSize: 10, color: '#ccc', lineHeight: 1.4, marginBottom: 4 }}>{lm.description}</div>}
+            {lm.folklore && <div style={{ fontSize: 10, color: '#aaa', lineHeight: 1.4, fontStyle: 'italic', marginBottom: 4 }}>「{lm.folklore}」</div>}
+            {lm.fun_fact && <div style={{ fontSize: 10, color: '#ffd93d', lineHeight: 1.4 }}>💡 {lm.fun_fact}</div>}
+            {lm.location_gated_tools.length > 0 && (
+              <div style={{ fontSize: 10, color: '#666', marginTop: 4 }}>可用工具: {lm.location_gated_tools.length} 个</div>
+            )}
+          </div>
+        )
+      })()}
 
       {/* Conversations — fills remaining space, always visible */}
       <div style={{ background: '#16213e', borderRadius: 6, padding: 8, flex: 1, overflow: 'auto', minHeight: 0 }}>
