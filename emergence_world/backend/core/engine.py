@@ -230,6 +230,20 @@ class SimulationEngine:
 
         try:
             return await tool_def.execute(agent, self.db, **tool_input)
+        except TypeError as e:
+            if "unexpected keyword argument" in str(e):
+                # Filter out unexpected params and retry
+                import inspect
+                sig = inspect.signature(tool_def.execute)
+                valid = {p for p in sig.parameters if p not in ("agent", "db", "kwargs")}
+                filtered = {k: v for k, v in tool_input.items() if k in valid or "kwargs" in sig.parameters}
+                try:
+                    return await tool_def.execute(agent, self.db, **filtered)
+                except Exception as e2:
+                    logger.error(f"Tool '{tool_name}' failed after param filter: {e2}")
+                    return f"Error executing {tool_name}: {e2}"
+            logger.error(f"Tool '{tool_name}' failed: {e}")
+            return f"Error executing {tool_name}: {e}"
         except Exception as e:
             logger.error(f"Tool '{tool_name}' failed: {e}")
             return f"Error executing {tool_name}: {e}"
