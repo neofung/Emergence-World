@@ -119,6 +119,9 @@ class SimulationEngine:
 
         # 3. System prompt
         all_landmarks = (await self.db.execute(select(Landmark.name))).scalars().all()
+        all_agents = (await self.db.execute(
+            select(Agent.name).where(Agent.is_alive.is_(True))
+        )).scalars().all()
         system_prompt = build_system_prompt(
             agent=agent,
             landmark_name=landmark_name,
@@ -132,6 +135,7 @@ class SimulationEngine:
             day_count=self._world_state.day_count if self._world_state else 1,
             language=settings.language,
             landmark_names=list(all_landmarks),
+            all_agent_names=list(all_agents),
         )
 
         # 4. Tools from registry

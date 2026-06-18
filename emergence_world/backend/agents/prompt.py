@@ -75,6 +75,7 @@ def build_system_prompt(
     day_count: int,
     language: str = "en",
     landmark_names: list[str] | None = None,
+    all_agent_names: list[str] | None = None,
 ) -> str:
     """Build the system prompt for an agent's turn."""
     t = _I18N.get(language, _I18N["en"])
@@ -125,6 +126,9 @@ def build_system_prompt(
 
 ## Locations in this World
 {chr(10).join(f"- {name}" for name in (landmark_names or []))}
+
+## Other Agents You Can Talk To
+{chr(10).join(f"- {name}" for name in (all_agent_names or []) if name != agent.name)}
 
 {t["instructions"]}
 
