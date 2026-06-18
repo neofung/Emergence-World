@@ -17,6 +17,7 @@ class Agent(UUIDMixin, TimestampMixin, Base):
 
     # Identity
     name: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    display_name: Mapped[str] = mapped_column(String(64), default="")
     role: Mapped[str] = mapped_column(String(128))
     personality: Mapped[str] = mapped_column(Text)
     north_star_goal: Mapped[str] = mapped_column(Text)

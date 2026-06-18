@@ -101,6 +101,7 @@ async def list_agents(db: AsyncSession = Depends(get_db)) -> list[dict[str, Any]
         {
             "id": str(a.id),
             "name": a.name,
+            "display_name": a.display_name or a.name,
             "role": a.role,
             "agent_type": a.agent_type.value,
             "energy": a.energy,

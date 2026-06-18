@@ -1,6 +1,7 @@
 export interface Agent {
   id: string
   name: string
+  display_name: string
   role: string
   agent_type: string
   energy: number

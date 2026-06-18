@@ -1,9 +1,10 @@
-import { useRef, useEffect, useCallback } from 'react'
+import { useRef, useEffect, useCallback, useState } from 'react'
 import type { Agent, Landmark } from './types'
+import { AGENT_COLORS } from './colors'
 
 const GRID_SIZE = 240
-const SCALE = 2.5  // 1 unit = 2.5px → 600px total
-const CANVAS_SIZE = GRID_SIZE * SCALE
+const ZOOM_MIN = 0.5
+const ZOOM_MAX = 10
 
 const CATEGORY_COLORS: Record<string, string> = {
   residential: '#4a6741',
@@ -14,11 +15,12 @@ const CATEGORY_COLORS: Record<string, string> = {
   landmark: '#5a5a3e',
 }
 
-const AGENT_COLORS = [
-  '#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#ff6bff',
-  '#ff9f43', '#a29bfe', '#fd79a8', '#00cec9', '#e17055',
-  '#74b9ff', '#55efc4', '#ffeaa7',
-]
+const zoomBtnStyle: React.CSSProperties = {
+  width: 22, height: 22, border: 'none', borderRadius: 4,
+  background: '#2a2a4e', color: '#fff', fontSize: 14,
+  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+  padding: 0, lineHeight: 1,
+}
 
 interface Props {
   landmarks: Landmark[]
@@ -29,6 +31,24 @@ interface Props {
 
 export default function WorldCanvas({ landmarks, agents, selectedAgent, onSelectAgent }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [size, setSize] = useState(600)
+  const [zoom, setZoom] = useState(1)
+  const [pan, setPan] = useState({ x: 0, y: 0 })
+  const [dragging, setDragging] = useState(false)
+  const dragRef = useRef<{ startX: number; startY: number; panX: number; panY: number; moved: boolean } | null>(null)
+
+  // Observe container size
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const ro = new ResizeObserver((entries) => {
+      const { width, height } = entries[0].contentRect
+      setSize(Math.floor(Math.min(width, height)))
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current
@@ -36,90 +56,153 @@ export default function WorldCanvas({ landmarks, agents, selectedAgent, onSelect
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
+    const dpr = window.devicePixelRatio || 1
+    const cssSize = size
+    canvas.width = cssSize * dpr
+    canvas.height = cssSize * dpr
+    canvas.style.width = `${cssSize}px`
+    canvas.style.height = `${cssSize}px`
+    ctx.scale(dpr, dpr)
+
+    const baseScale = cssSize / GRID_SIZE
+
     // Background
     ctx.fillStyle = '#16213e'
-    ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
+    ctx.fillRect(0, 0, cssSize, cssSize)
+
+    // Apply zoom + pan
+    ctx.save()
+    ctx.translate(pan.x, pan.y)
+    ctx.scale(zoom, zoom)
 
     // Grid
     ctx.strokeStyle = '#1a1a3e'
-    ctx.lineWidth = 0.5
+    ctx.lineWidth = 0.5 / zoom
     for (let i = 0; i <= GRID_SIZE; i += 20) {
       ctx.beginPath()
-      ctx.moveTo(i * SCALE, 0)
-      ctx.lineTo(i * SCALE, CANVAS_SIZE)
+      ctx.moveTo(i * baseScale, 0)
+      ctx.lineTo(i * baseScale, cssSize)
       ctx.stroke()
       ctx.beginPath()
-      ctx.moveTo(0, i * SCALE)
-      ctx.lineTo(CANVAS_SIZE, i * SCALE)
+      ctx.moveTo(0, i * baseScale)
+      ctx.lineTo(cssSize, i * baseScale)
       ctx.stroke()
     }
 
     // Landmarks
     for (const lm of landmarks) {
-      const x = lm.position.x * SCALE
-      const y = lm.position.y * SCALE
-      const size = lm.category === 'residential' ? 8 : 14
+      const x = lm.position.x * baseScale
+      const y = lm.position.y * baseScale
+      const sz = (lm.category === 'residential' ? 8 : 14) * (baseScale / 2.5)
       ctx.fillStyle = lm.is_open
         ? (CATEGORY_COLORS[lm.category] || '#555')
         : '#ff4444'
-      ctx.fillRect(x - size / 2, y - size / 2, size, size)
+      ctx.fillRect(x - sz / 2, y - sz / 2, sz, sz)
       ctx.strokeStyle = lm.is_open ? '#888' : '#ff0000'
-      ctx.lineWidth = 1
-      ctx.strokeRect(x - size / 2, y - size / 2, size, size)
+      ctx.lineWidth = 1 / zoom
+      ctx.strokeRect(x - sz / 2, y - sz / 2, sz, sz)
 
-      // Label
       if (lm.category !== 'residential') {
         ctx.fillStyle = '#aaa'
-        ctx.font = '7px monospace'
+        ctx.font = `${Math.max(7, 7 * baseScale / 2.5)}px monospace`
         ctx.textAlign = 'center'
-        ctx.fillText(lm.name, x, y + size / 2 + 9)
+        ctx.fillText(lm.name, x, y + sz / 2 + Math.max(9, 9 * baseScale / 2.5))
       }
     }
 
     // Agents
     agents.forEach((agent, i) => {
-      const x = agent.position.x * SCALE
-      const y = agent.position.y * SCALE
+      const x = agent.position.x * baseScale
+      const y = agent.position.y * baseScale
       const color = AGENT_COLORS[i % AGENT_COLORS.length]
       const isSelected = agent.name === selectedAgent
+      const dotR = 5 * (baseScale / 2.5)
 
-      // Glow for selected
       if (isSelected) {
         ctx.beginPath()
-        ctx.arc(x, y, 8, 0, Math.PI * 2)
+        ctx.arc(x, y, dotR * 1.6, 0, Math.PI * 2)
         ctx.fillStyle = color + '40'
         ctx.fill()
       }
 
-      // Agent dot
       ctx.beginPath()
-      ctx.arc(x, y, 5, 0, Math.PI * 2)
+      ctx.arc(x, y, dotR, 0, Math.PI * 2)
       ctx.fillStyle = agent.is_alive ? color : '#555'
       ctx.fill()
       ctx.strokeStyle = isSelected ? '#fff' : '#333'
-      ctx.lineWidth = isSelected ? 2 : 1
+      ctx.lineWidth = (isSelected ? 2 : 1) / zoom
       ctx.stroke()
 
-      // Name
       ctx.fillStyle = '#fff'
-      ctx.font = 'bold 8px monospace'
+      ctx.font = `bold ${Math.max(8, 8 * baseScale / 2.5)}px monospace`
       ctx.textAlign = 'center'
-      ctx.fillText(agent.name, x, y - 8)
+      ctx.fillText(agent.display_name || agent.name, x, y - dotR - 2)
     })
-  }, [landmarks, agents, selectedAgent])
+
+    ctx.restore()
+  }, [landmarks, agents, selectedAgent, size, zoom, pan])
 
   useEffect(() => { draw() }, [draw])
 
-  const handleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  // Zoom with mouse wheel
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault()
     const rect = canvasRef.current!.getBoundingClientRect()
-    const mx = (e.clientX - rect.left)
-    const my = (e.clientY - rect.top)
+    const mx = e.clientX - rect.left
+    const my = e.clientY - rect.top
+
+    setZoom(prev => {
+      const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15
+      const next = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, prev * factor))
+      // Zoom towards mouse position
+      const ratio = next / prev
+      setPan(p => ({
+        x: mx - ratio * (mx - p.x),
+        y: my - ratio * (my - p.y),
+      }))
+      return next
+    })
+  }, [])
+
+  // Pan with mouse drag
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 0) return
+    dragRef.current = { startX: e.clientX, startY: e.clientY, panX: pan.x, panY: pan.y, moved: false }
+    setDragging(true)
+  }, [pan])
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!dragRef.current) return
+    const dx = e.clientX - dragRef.current.startX
+    const dy = e.clientY - dragRef.current.startY
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragRef.current.moved = true
+    setPan({
+      x: dragRef.current.panX + dx,
+      y: dragRef.current.panY + dy,
+    })
+  }, [])
+
+  const handleMouseUp = useCallback(() => {
+    // Delay clearing so click handler can detect a drag
+    setTimeout(() => { dragRef.current = null }, 0)
+    setDragging(false)
+  }, [])
+
+  // Click to select agent (only if not dragging)
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    if (dragRef.current?.moved) return
+
+    const rect = canvasRef.current!.getBoundingClientRect()
+    const baseScale = size / GRID_SIZE
+    // Convert screen coords back to world coords (undo pan + zoom)
+    const mx = (e.clientX - rect.left - pan.x) / zoom
+    const my = (e.clientY - rect.top - pan.y) / zoom
 
     let closest: string | null = null
-    let minDist = 15
+    let minDist = 15 * (baseScale / 2.5)
     for (const agent of agents) {
-      const ax = agent.position.x * SCALE
-      const ay = agent.position.y * SCALE
+      const ax = agent.position.x * baseScale
+      const ay = agent.position.y * baseScale
       const dist = Math.sqrt((mx - ax) ** 2 + (my - ay) ** 2)
       if (dist < minDist) {
         minDist = dist
@@ -127,15 +210,106 @@ export default function WorldCanvas({ landmarks, agents, selectedAgent, onSelect
       }
     }
     onSelectAgent(closest)
-  }
+  }, [agents, onSelectAgent, size, zoom, pan])
+
+  // Zoom helpers
+  const zoomTo = useCallback((target: number, center?: { x: number; y: number }) => {
+    const clamped = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, target))
+    if (center) {
+      const ratio = clamped / zoom
+      setPan(p => ({
+        x: center.x - ratio * (center.x - p.x),
+        y: center.y - ratio * (center.y - p.y),
+      }))
+    }
+    setZoom(clamped)
+  }, [zoom])
+
+  // Double-click to reset view
+  const handleDoubleClick = useCallback(() => {
+    setZoom(1)
+    setPan({ x: 0, y: 0 })
+  }, [])
+
+  // Slider: map y-position to zoom (log scale)
+  const sliderToZoom = useCallback((t: number) => ZOOM_MIN * (ZOOM_MAX / ZOOM_MIN) ** t, [])
+  const zoomToSlider = useCallback((z: number) => Math.log(z / ZOOM_MIN) / Math.log(ZOOM_MAX / ZOOM_MIN), [])
+
+  const handleSliderClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const t = 1 - (e.clientY - rect.top) / rect.height // top = max zoom
+    zoomTo(sliderToZoom(Math.max(0, Math.min(1, t))))
+  }, [zoomTo, sliderToZoom])
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={CANVAS_SIZE}
-      height={CANVAS_SIZE}
-      onClick={handleClick}
-      style={{ border: '1px solid #333', cursor: 'crosshair', borderRadius: 4 }}
-    />
+    <div ref={containerRef} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0, minHeight: 0, position: 'relative' }}>
+      <canvas
+        ref={canvasRef}
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
+        style={{ border: '1px solid #333', cursor: dragging ? 'grabbing' : 'crosshair', borderRadius: 4 }}
+      />
+
+      {/* Zoom controls — bottom-right corner */}
+      <div style={{
+        position: 'absolute', right: 8, bottom: 8,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+        background: 'rgba(22,33,62,0.85)', borderRadius: 6, padding: '6px 4px',
+        border: '1px solid #333', userSelect: 'none',
+      }}>
+        {/* + button */}
+        <button
+          onClick={() => zoomTo(zoom * 1.3)}
+          style={zoomBtnStyle}
+          title="Zoom in"
+        >+</button>
+
+        {/* Slider track */}
+        <div
+          onClick={handleSliderClick}
+          style={{
+            width: 6, height: 100, background: '#2a2a4e', borderRadius: 3,
+            position: 'relative', cursor: 'pointer', margin: '4px 0',
+          }}
+        >
+          {/* Fill */}
+          <div style={{
+            position: 'absolute', bottom: 0, width: '100%',
+            height: `${zoomToSlider(zoom) * 100}%`,
+            background: '#4d96ff', borderRadius: 3,
+          }} />
+          {/* Thumb */}
+          <div style={{
+            position: 'absolute',
+            bottom: `${zoomToSlider(zoom) * 100}%`,
+            left: '50%', transform: 'translate(-50%, 50%)',
+            width: 14, height: 14, background: '#fff', borderRadius: '50%',
+            border: '2px solid #4d96ff', boxShadow: '0 0 4px rgba(0,0,0,0.5)',
+          }} />
+        </div>
+
+        {/* - button */}
+        <button
+          onClick={() => zoomTo(zoom / 1.3)}
+          style={zoomBtnStyle}
+          title="Zoom out"
+        >−</button>
+
+        {/* Percentage label */}
+        <div style={{ fontSize: 10, color: '#aaa', marginTop: 2 }}>{(zoom * 100).toFixed(0)}%</div>
+
+        {/* Reset button */}
+        <button
+          onClick={handleDoubleClick}
+          style={{ ...zoomBtnStyle, fontSize: 9, width: 22, height: 18, marginTop: 2 }}
+          title="Reset view"
+        >1:1</button>
+      </div>
+    </div>
   )
 }

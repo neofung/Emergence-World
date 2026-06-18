@@ -53,6 +53,7 @@ async def seed_database(db: AsyncSession) -> None:
         home = landmark_map.get(data["home"])
         agent = Agent(
             name=data["name"],
+            display_name=data.get("display_name", ""),
             role=data["role"],
             personality=data["personality"],
             north_star_goal=data["north_star_goal"],
