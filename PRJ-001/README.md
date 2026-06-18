@@ -14,7 +14,7 @@
 
 ## 项目简介
 
-基于 Emergence World 仓库全量文档，一人从零构建完整的 AI 社会模拟平台。后端 Python/FastAPI，前端 React/Canvas 2D，LLM 通过 Anthropic SDK 接入。本地运行，117 个工具覆盖 17 个类别。
+基于 Emergence World 仓库全量文档，一人从零构建完整的 AI 社会模拟平台。后端 Python/FastAPI，前端 React/Canvas 2D，LLM 通过 Anthropic SDK 接入。本地运行，117 个工具覆盖 17 个类别，支持 i18n 多语言。
 
 ## 实现进度
 
@@ -25,6 +25,7 @@
 | Phase 3 | 工具框架 + 117 个工具 | ✅ 完成 |
 | Phase 4 | 终端控制台 + 内容/犯罪工具 | ✅ 完成 |
 | Phase 5 | AWI 指标 + 2D 可视化前端 | ✅ 完成 |
+| Phase 6 | i18n + 前端打磨 + 活动流 | ✅ 完成 |
 
 ## 已实现工具（117 个）
 

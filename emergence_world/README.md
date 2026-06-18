@@ -39,16 +39,23 @@ Emergence-World/
 │   │
 │   ├── backend/                    # 后端（Python）
 │   │   ├── main.py                 # FastAPI 入口 + API
-│   │   ├── config.py               # 配置
+│   │   ├── config.py               # 配置（含 language 设置）
 │   │   ├── database.py             # 数据库引擎
-│   │   ├── models/                 # 16 个 ORM 模型
+│   │   ├── models/                 # 17 个 ORM 模型
 │   │   ├── seed/                   # 种子数据
+│   │   │   ├── agents.py           # 代理结构数据
+│   │   │   ├── landmarks.py        # 地标结构数据
+│   │   │   ├── constitution.py     # 宪法
+│   │   │   ├── loader.py           # 种子加载（合并 i18n）
+│   │   │   └── i18n/               # 多语言资源
+│   │   │       ├── en.json         # 英文
+│   │   │       └── zh_cn.json      # 中文
 │   │   ├── core/                   # 模拟引擎
 │   │   │   ├── engine.py           # 主循环 + 工具执行
 │   │   │   ├── scheduler.py        # 调度器
 │   │   │   ├── llm.py              # Anthropic 客户端
 │   │   │   └── awi.py              # AWI 指标
-│   │   ├── agents/prompt.py        # 提示词构建器
+│   │   ├── agents/prompt.py        # 提示词构建器（支持 i18n）
 │   │   ├── tools/                  # 117 个工具（17 类别）
 │   │   ├── ui/console.py           # 终端控制台
 │   │   ├── alembic/                # 数据库迁移
@@ -58,9 +65,13 @@ Emergence-World/
 │   └── frontend/                   # 前端（React）
 │       ├── package.json
 │       └── src/
-│           ├── WorldCanvas.tsx     # Canvas 地图
-│           ├── Sidebar.tsx         # 代理列表 + 对话
-│           └── ControlPanel.tsx    # 模拟控制
+│           ├── WorldCanvas.tsx     # Canvas 地图（缩放/平移/防重叠标签）
+│           ├── Sidebar.tsx         # 代理列表 + 活动流
+│           ├── ControlPanel.tsx    # 模拟控制 + 游戏时间
+│           ├── hooks.ts            # 轮询 hooks
+│           ├── api.ts              # API 调用
+│           ├── types.ts            # TypeScript 类型
+│           └── colors.ts           # 代理颜色常量
 │
 ├── docs/                           # 系统设计文档
 ├── agent_profiles/                 # 代理档案
@@ -82,6 +93,18 @@ Emergence-World/
 | POST | `/api/v1/simulation/resume` | 恢复 |
 | POST | `/api/v1/simulation/stop` | 停止 |
 | GET | `/api/v1/console/*` | 终端控制台视图 |
+
+## 特性
+
+- **117 个工具** — 17 个类别，代理可导航、对话、治理、建造、犯罪
+- **i18n 多语言** — 通过 `LANGUAGE` 配置切换中英文，资源文件驱动
+- **2D Canvas 沙盘** — 缩放/平移、防重叠标签、按类别区分图案（方块/菱形/五边形/圆/六边形/星）
+- **活动流** — 对话 + 行动混合显示，emoji 标记类型（💬🗣️⚡）
+- **代理 display_name** — emoji + 中文昵称（🔥调停哥、🔨建造者、🎲赌神 等）
+- **点击查看详情** — 代理/地标均可点击，侧面板显示详情
+- **重叠循环选择** — 同一位置多次点击循环切换目标
+- **模拟引擎** — 多轮工具执行、Boost Queue 调度、需求衰减、死亡机制
+- **AWI 指标** — 9 个社会指标自动计算
 
 ## 工具（117 个）
 
