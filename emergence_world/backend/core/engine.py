@@ -13,7 +13,7 @@ from emergence_world.backend.agents.prompt import build_system_prompt
 from emergence_world.backend.config import get_settings
 from emergence_world.backend.core.llm import LLMClient
 from emergence_world.backend.core.scheduler import Scheduler
-from emergence_world.backend.models import Agent, EventLog, LongTermMemory, Relationship, WorldState
+from emergence_world.backend.models import Agent, EventLog, Landmark, LongTermMemory, Relationship, WorldState
 from emergence_world.backend.tools import get_all_tools, get_tool
 
 logger = logging.getLogger(__name__)
@@ -118,6 +118,7 @@ class SimulationEngine:
         relationships = await self._load_relationships(agent_id)
 
         # 3. System prompt
+        all_landmarks = (await self.db.execute(select(Landmark.name))).scalars().all()
         system_prompt = build_system_prompt(
             agent=agent,
             landmark_name=landmark_name,
@@ -130,6 +131,7 @@ class SimulationEngine:
             weather=self._world_state.current_weather if self._world_state else "clear",
             day_count=self._world_state.day_count if self._world_state else 1,
             language=settings.language,
+            landmark_names=list(all_landmarks),
         )
 
         # 4. Tools from registry

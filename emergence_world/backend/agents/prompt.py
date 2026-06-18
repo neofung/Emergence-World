@@ -74,6 +74,7 @@ def build_system_prompt(
     weather: str,
     day_count: int,
     language: str = "en",
+    landmark_names: list[str] | None = None,
 ) -> str:
     """Build the system prompt for an agent's turn."""
     t = _I18N.get(language, _I18N["en"])
@@ -121,6 +122,9 @@ def build_system_prompt(
 - {t["time"]}: {current_time}
 - {t["weather"]}: {weather}
 - {t["day"]}: {day_count}/15
+
+## Locations in this World
+{chr(10).join(f"- {name}" for name in (landmark_names or []))}
 
 {t["instructions"]}
 
