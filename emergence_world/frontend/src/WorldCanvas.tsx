@@ -153,24 +153,27 @@ export default function WorldCanvas({ landmarks, agents, selectedAgent, onSelect
       const textW = ctx.measureText(label.text).width
       const fontSize = parseFloat(label.font)
       const textH = fontSize * 1.2
-      // Initial position: centered below/above marker
+
       let bestX = label.x
       let bestY = label.y
       let bestOverlap = Infinity
 
-      // Try 9 positions: original + 8 offsets
-      const offsets = [
-        [0, 0], [0, -textH * 1.2], [textW * 0.6, 0], [-textW * 0.6, 0],
-        [0, textH * 1.2], [textW * 0.6, -textH * 1.2], [-textW * 0.6, -textH * 1.2],
-        [textW * 0.6, textH * 1.2], [-textW * 0.6, textH * 1.2],
-      ]
+      // Try positions on a grid around the anchor point
+      const offsets: [number, number][] = [[0, 0]]
+      for (let r = 1; r <= 3; r++) {
+        const dx = textW * 0.8 * r
+        const dy = textH * 1.5 * r
+        offsets.push(
+          [0, -dy], [0, dy], [dx, 0], [-dx, 0],
+          [dx, -dy], [-dx, -dy], [dx, dy], [-dx, dy],
+        )
+      }
 
       for (const [ox, oy] of offsets) {
         const cx = label.x + ox
         const cy = label.y + oy
-        const rect = { x: cx - textW / 2 - 1, y: cy - textH + 1, w: textW + 2, h: textH + 1 }
+        const rect = { x: cx - textW / 2 - 2, y: cy - textH, w: textW + 4, h: textH + 2 }
 
-        // Count overlaps with already-placed labels
         let overlap = 0
         for (const p of placed) {
           if (rect.x < p.x + p.w && rect.x + rect.w > p.x &&
@@ -186,9 +189,8 @@ export default function WorldCanvas({ landmarks, agents, selectedAgent, onSelect
         }
       }
 
-      placed.push({ x: bestX - textW / 2 - 1, y: bestY - textH + 1, w: textW + 2, h: textH + 1 })
+      placed.push({ x: bestX - textW / 2 - 2, y: bestY - textH, w: textW + 4, h: textH + 2 })
 
-      // Draw the label
       ctx.fillStyle = label.color
       ctx.font = label.font
       ctx.textAlign = 'center'
