@@ -490,7 +490,19 @@ async def list_blogs(agent: Agent, db: AsyncSession, **kwargs) -> str:
     },
     category="content",
 )
-async def read_blog(agent: Agent, db: AsyncSession, title: str) -> str:
+async def read_blog(agent: Agent, db: AsyncSession, title: str = "") -> str:
+    if not title:
+        # No title provided — show latest blog
+        result = await db.execute(
+            select(DiaryEntry)
+            .where(DiaryEntry.content.ilike("[BLOG%]%"))
+            .order_by(DiaryEntry.created_at.desc())
+            .limit(1)
+        )
+        blog = result.scalars().first()
+        if not blog:
+            return "No blog posts found."
+        return blog.content
     result = await db.execute(
         select(DiaryEntry)
         .where(DiaryEntry.content.ilike(f"[BLOG%] {title}%"))
