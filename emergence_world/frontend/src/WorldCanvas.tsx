@@ -150,7 +150,7 @@ export default function WorldCanvas({ landmarks, agents, selectedAgent, onSelect
     const rects: LabelRect[] = allLabels.map(label => {
       ctx.font = label.font
       const textW = ctx.measureText(label.text).width
-      const fontSize = parseFloat(label.font)
+      const fontSize = parseFloat(label.font.split(' ').find(s => s.endsWith('px'))!) || 8
       const textH = fontSize * 1.2
       return {
         x: label.x - textW / 2 - 2,
