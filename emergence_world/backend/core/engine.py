@@ -283,10 +283,14 @@ class SimulationEngine:
             delta = timedelta(seconds=self._world_state.acceleration_factor)
         else:
             delta = timedelta(seconds=2)
-        self._world_state.current_time = (self._world_state.current_time or datetime.now(timezone.utc)) + delta
+
+        cur = self._world_state.current_time or datetime.now(timezone.utc)
+        if cur.tzinfo is None:
+            cur = cur.replace(tzinfo=timezone.utc)
+        self._world_state.current_time = cur + delta
 
         sim_start = datetime(2026, 1, 1, 8, 0, 0, tzinfo=timezone.utc)
-        elapsed = self._world_state.current_time - sim_start
+        elapsed = self._world_state.current_time.replace(tzinfo=timezone.utc) - sim_start
         new_day = int(elapsed.total_seconds() / 86400) + 1
         if new_day > self._world_state.day_count:
             self._world_state.day_count = new_day
