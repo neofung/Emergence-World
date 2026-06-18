@@ -156,12 +156,13 @@ class SimulationEngine:
                 break
 
             # Log response
+            display = agent.display_name or agent.name
             tool_uses = []
             for block in response.content:
                 if block.type == "text" and block.text.strip():
                     logger.info(f"[{agent.name}] [{landmark_name}] says: {block.text[:150]}")
                     self.db.add(EventLog(
-                        agent_id=agent.id, agent_name=agent.name,
+                        agent_id=agent.id, agent_name=display,
                         event_type="speech", content=block.text[:500],
                         location=landmark_name,
                     ))
@@ -189,7 +190,7 @@ class SimulationEngine:
                 })
                 logger.info(f"[{agent.name}]   → {result_text[:100]}")
                 self.db.add(EventLog(
-                    agent_id=agent.id, agent_name=agent.name,
+                    agent_id=agent.id, agent_name=display,
                     event_type="tool_call", tool_name=tu.name,
                     content=result_text[:300], location=landmark_name,
                 ))
