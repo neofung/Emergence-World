@@ -242,6 +242,9 @@ async def simulation_start() -> dict[str, Any]:
         async with async_session() as db:
             _sim_engine.db = db
             _sim_engine.llm = _get_llm_client()
+            # Reload world_state in the new session to avoid detached instance
+            result = await db.execute(select(WorldState).limit(1))
+            _sim_engine._world_state = result.scalar_one_or_none()
             await _sim_engine.run()
 
     _sim_task = asyncio.create_task(_run())
