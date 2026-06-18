@@ -144,57 +144,61 @@ export default function WorldCanvas({ landmarks, agents, selectedAgent, onSelect
       agentLabels.push({ x, y: y - dotR - 2, text, color: '#fff', font })
     })
 
-    // Resolve label collisions across all labels
+    // Resolve label collisions with iterative repulsion
     const allLabels = [...lmLabels, ...agentLabels]
-    const placed: { x: number; y: number; w: number; h: number }[] = []
-
-    for (const label of allLabels) {
+    type LabelRect = { x: number; y: number; w: number; h: number; anchorX: number; anchorY: number; label: typeof allLabels[0] }
+    const rects: LabelRect[] = allLabels.map(label => {
       ctx.font = label.font
       const textW = ctx.measureText(label.text).width
       const fontSize = parseFloat(label.font)
       const textH = fontSize * 1.2
-
-      let bestX = label.x
-      let bestY = label.y
-      let bestOverlap = Infinity
-
-      // Try positions on a grid around the anchor point
-      const offsets: [number, number][] = [[0, 0]]
-      for (let r = 1; r <= 3; r++) {
-        const dx = textW * 0.8 * r
-        const dy = textH * 1.5 * r
-        offsets.push(
-          [0, -dy], [0, dy], [dx, 0], [-dx, 0],
-          [dx, -dy], [-dx, -dy], [dx, dy], [-dx, dy],
-        )
+      return {
+        x: label.x - textW / 2 - 2,
+        y: label.y - textH,
+        w: textW + 4,
+        h: textH + 2,
+        anchorX: label.x,
+        anchorY: label.y,
+        label,
       }
+    })
 
-      for (const [ox, oy] of offsets) {
-        const cx = label.x + ox
-        const cy = label.y + oy
-        const rect = { x: cx - textW / 2 - 2, y: cy - textH, w: textW + 4, h: textH + 2 }
-
-        let overlap = 0
-        for (const p of placed) {
-          if (rect.x < p.x + p.w && rect.x + rect.w > p.x &&
-              rect.y < p.y + p.h && rect.y + rect.h > p.y) {
-            overlap++
+    // Iterative repulsion — push overlapping labels apart
+    const maxIter = 20
+    for (let iter = 0; iter < maxIter; iter++) {
+      let moved = false
+      for (let i = 0; i < rects.length; i++) {
+        for (let j = i + 1; j < rects.length; j++) {
+          const a = rects[i], b = rects[j]
+          // Check overlap
+          const overlapX = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)
+          const overlapY = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y)
+          if (overlapX > 0 && overlapY > 0) {
+            moved = true
+            // Push apart along the axis of least overlap
+            if (overlapX < overlapY) {
+              const push = overlapX / 2 + 1
+              const dir = a.x < b.x ? -1 : 1
+              a.x += dir * push
+              b.x -= dir * push
+            } else {
+              const push = overlapY / 2 + 1
+              const dir = a.y < b.y ? -1 : 1
+              a.y += dir * push
+              b.y -= dir * push
+            }
           }
         }
-        if (overlap < bestOverlap) {
-          bestOverlap = overlap
-          bestX = cx
-          bestY = cy
-          if (overlap === 0) break
-        }
       }
+      if (!moved) break
+    }
 
-      placed.push({ x: bestX - textW / 2 - 2, y: bestY - textH, w: textW + 4, h: textH + 2 })
-
-      ctx.fillStyle = label.color
-      ctx.font = label.font
+    // Draw all labels
+    for (const r of rects) {
+      ctx.fillStyle = r.label.color
+      ctx.font = r.label.font
       ctx.textAlign = 'center'
-      ctx.fillText(label.text, bestX, bestY)
+      ctx.fillText(r.label.text, r.x + r.w / 2, r.y + r.h - 2)
     }
 
     ctx.restore()
