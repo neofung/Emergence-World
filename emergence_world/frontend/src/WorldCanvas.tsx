@@ -39,6 +39,7 @@ export default function WorldCanvas({ landmarks, agents, selectedAgent, selected
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [dragging, setDragging] = useState(false)
   const dragRef = useRef<{ startX: number; startY: number; panX: number; panY: number; moved: boolean } | null>(null)
+  const cycleRef = useRef<{ x: number; y: number; items: { type: 'agent' | 'landmark'; name: string }[]; index: number } | null>(null)
 
   // Observe container size
   useEffect(() => {
@@ -266,7 +267,7 @@ export default function WorldCanvas({ landmarks, agents, selectedAgent, selected
     setDragging(false)
   }, [])
 
-  // Click to select agent or landmark (only if not dragging)
+  // Click to select agent or landmark, cycle through overlapping targets
   const handleClick = useCallback((e: React.MouseEvent) => {
     if (dragRef.current?.moved) return
 
@@ -277,36 +278,50 @@ export default function WorldCanvas({ landmarks, agents, selectedAgent, selected
     const mx = (e.clientX - rect.left - pan.x - offsetX) / zoom
     const my = (e.clientY - rect.top - pan.y - offsetY) / zoom
 
-    // Check agents first
-    let closestAgent: string | null = null
-    let minDist = 15 * (baseScale / 2.5)
+    // Collect all clickable items at this position
+    const hitRadius = 15 * (baseScale / 2.5)
+    const lmRadius = 20 * (baseScale / 2.5)
+    const items: { type: 'agent' | 'landmark'; name: string; dist: number }[] = []
+
     for (const agent of agents) {
       const ax = agent.position.x * baseScale
       const ay = agent.position.y * baseScale
       const dist = Math.sqrt((mx - ax) ** 2 + (my - ay) ** 2)
-      if (dist < minDist) {
-        minDist = dist
-        closestAgent = agent.name
-      }
+      if (dist < hitRadius) items.push({ type: 'agent', name: agent.name, dist })
     }
-    if (closestAgent) {
-      onSelectAgent(closestAgent)
-      return
-    }
-
-    // Check landmarks
-    let closestLm: string | null = null
-    let minLmDist = 20 * (baseScale / 2.5)
     for (const lm of landmarks) {
       const lx = lm.position.x * baseScale
       const ly = lm.position.y * baseScale
       const dist = Math.sqrt((mx - lx) ** 2 + (my - ly) ** 2)
-      if (dist < minLmDist) {
-        minLmDist = dist
-        closestLm = lm.name
-      }
+      if (dist < lmRadius) items.push({ type: 'landmark', name: lm.name, dist })
     }
-    onSelectLandmark(closestLm)
+
+    if (items.length === 0) {
+      onSelectAgent(null)
+      onSelectLandmark(null)
+      cycleRef.current = null
+      return
+    }
+
+    items.sort((a, b) => a.dist - b.dist)
+
+    // Check if clicking the same spot as last time
+    const prev = cycleRef.current
+    const sameSpot = prev && Math.abs(mx - prev.x) < 5 && Math.abs(my - prev.y) < 5
+      && prev.items.length === items.length
+      && prev.items.every((p, i) => p.name === items[i].name && p.type === items[i].type)
+
+    const index = sameSpot ? (prev!.index + 1) % items.length : 0
+    cycleRef.current = { x: mx, y: my, items, index }
+
+    const picked = items[index]
+    if (picked.type === 'agent') {
+      onSelectAgent(picked.name)
+      onSelectLandmark(null)
+    } else {
+      onSelectLandmark(picked.name)
+      onSelectAgent(null)
+    }
   }, [agents, landmarks, onSelectAgent, onSelectLandmark, canvasSize, zoom, pan])
 
   // Zoom helpers
