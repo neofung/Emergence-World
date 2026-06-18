@@ -50,6 +50,8 @@ class SimulationEngine:
     async def run(self) -> None:
         """Main simulation loop."""
         self._running = True
+        turn_count = 0
+        consecutive_failures = 0
         logger.info("Simulation started")
 
         while self._running:
@@ -58,6 +60,7 @@ class SimulationEngine:
                 continue
 
             if not self._world_state:
+                logger.error("WorldState is None — stopping")
                 break
 
             if self._world_state.day_count > 15:
@@ -71,10 +74,26 @@ class SimulationEngine:
 
             try:
                 await self._execute_turn(agent_id)
+                consecutive_failures = 0
             except Exception as e:
-                logger.error(f"Turn failed for agent {agent_id}: {e}")
+                consecutive_failures += 1
+                logger.error(f"Turn {turn_count} failed ({consecutive_failures} consecutive): {e}")
+                if consecutive_failures >= 5:
+                    logger.warning("5 consecutive failures — pausing 10s before retry")
+                    await self._sleep(10)
+                    consecutive_failures = 0
 
-            await self._advance_time()
+            try:
+                await self._advance_time()
+            except Exception as e:
+                logger.error(f"Time advance failed: {e}")
+
+            turn_count += 1
+            if turn_count % 13 == 0:
+                logger.info(f"Round {turn_count // 13} complete, day {self._world_state.day_count}")
+
+            # Small delay between turns to avoid LLM rate limiting
+            await self._sleep(0.5)
 
     async def _execute_turn(self, agent_id: uuid.UUID) -> None:
         """Execute a single agent turn with multi-step tool loop."""
