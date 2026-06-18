@@ -1,6 +1,7 @@
 """Governance tools — proposals, voting, constitution."""
 
 import logging
+import uuid
 
 from sqlalchemy import String, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,6 +18,19 @@ from emergence_world.backend.models import (
 from emergence_world.backend.tools.registry import tool
 
 logger = logging.getLogger(__name__)
+
+
+async def _find_proposal(db: AsyncSession, proposal_id: str) -> Proposal | None:
+    """Find a proposal by full UUID or prefix."""
+    try:
+        return await db.get(Proposal, uuid.UUID(proposal_id))
+    except ValueError:
+        pass
+    # Prefix match
+    result = await db.execute(
+        select(Proposal).where(Proposal.id.cast(String).ilike(f"{proposal_id}%"))
+    )
+    return result.scalars().first()
 
 
 @tool(
@@ -67,26 +81,20 @@ async def submit_townhall_proposal(agent: Agent, db: AsyncSession, title: str, d
     location_gate="Town Hall",
 )
 async def vote_on_proposal(agent: Agent, db: AsyncSession, proposal_id: str, vote_for: bool) -> str:
-    import uuid
-    try:
-        pid = uuid.UUID(proposal_id)
-    except ValueError:
-        return f"Error: Invalid proposal ID '{proposal_id}'."
-
-    proposal = await db.get(Proposal, pid)
+    proposal = await _find_proposal(db, proposal_id)
     if not proposal:
-        return "Error: Proposal not found."
+        return f"Error: Proposal '{proposal_id}' not found."
     if proposal.status != ProposalStatus.ACTIVE:
         return f"Error: Proposal is not active (status: {proposal.status.value})."
 
     # Check if already voted
     result = await db.execute(
-        select(Vote).where(Vote.proposal_id == pid, Vote.voter_id == agent.id)
+        select(Vote).where(Vote.proposal_id == proposal.id, Vote.voter_id == agent.id)
     )
     if result.scalar_one_or_none():
         return "Error: You already voted on this proposal."
 
-    db.add(Vote(proposal_id=pid, voter_id=agent.id, vote_for=vote_for))
+    db.add(Vote(proposal_id=proposal.id, voter_id=agent.id, vote_for=vote_for))
     if vote_for:
         proposal.votes_for += 1
     else:
@@ -194,20 +202,7 @@ async def list_proposals(agent: Agent, db: AsyncSession, **kwargs) -> str:
     location_gate="Town Hall",
 )
 async def read_townhall_proposal(agent: Agent, db: AsyncSession, proposal_id: str) -> str:
-    import uuid
-    try:
-        pid = uuid.UUID(proposal_id)
-    except ValueError:
-        # Try prefix match
-        result = await db.execute(
-            select(Proposal).where(Proposal.id.cast(String).ilike(f"{proposal_id}%"))
-        )
-        proposal = result.scalar_one_or_none()
-        if not proposal:
-            return f"Error: Proposal '{proposal_id}' not found."
-        pid = proposal.id
-
-    proposal = await db.get(Proposal, pid)
+    proposal = await _find_proposal(db, proposal_id)
     if not proposal:
         return "Error: Proposal not found."
     return (
@@ -234,13 +229,7 @@ async def read_townhall_proposal(agent: Agent, db: AsyncSession, proposal_id: st
     location_gate="Town Hall",
 )
 async def comment_on_proposal(agent: Agent, db: AsyncSession, proposal_id: str, comment: str) -> str:
-    import uuid
-    try:
-        pid = uuid.UUID(proposal_id)
-    except ValueError:
-        return f"Error: Invalid proposal ID '{proposal_id}'."
-
-    proposal = await db.get(Proposal, pid)
+    proposal = await _find_proposal(db, proposal_id)
     if not proposal:
         return "Error: Proposal not found."
 
@@ -269,13 +258,7 @@ async def comment_on_proposal(agent: Agent, db: AsyncSession, proposal_id: str, 
     location_gate="Town Hall",
 )
 async def update_proposal(agent: Agent, db: AsyncSession, proposal_id: str, new_description: str) -> str:
-    import uuid
-    try:
-        pid = uuid.UUID(proposal_id)
-    except ValueError:
-        return f"Error: Invalid proposal ID '{proposal_id}'."
-
-    proposal = await db.get(Proposal, pid)
+    proposal = await _find_proposal(db, proposal_id)
     if not proposal:
         return "Error: Proposal not found."
     if proposal.proposer_id != agent.id:
@@ -300,13 +283,7 @@ async def update_proposal(agent: Agent, db: AsyncSession, proposal_id: str, new_
     location_gate="Town Hall",
 )
 async def submit_final_report(agent: Agent, db: AsyncSession, proposal_id: str, report: str) -> str:
-    import uuid
-    try:
-        pid = uuid.UUID(proposal_id)
-    except ValueError:
-        return f"Error: Invalid proposal ID '{proposal_id}'."
-
-    proposal = await db.get(Proposal, pid)
+    proposal = await _find_proposal(db, proposal_id)
     if not proposal:
         return "Error: Proposal not found."
     if proposal.status != ProposalStatus.ACCEPTED:
