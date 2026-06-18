@@ -89,14 +89,14 @@ class TerminalUI:
             "── Recent Memories ──",
         ]
         for m in memories:
-            lines.append(f"  • {m.content[:80]}")
+            lines.append(f"  • {m.content}")
         if not memories:
             lines.append("  (none)")
 
         lines.append("")
         lines.append("── Today's Diary ──")
         for d in diary:
-            lines.append(f"  • [{d.mood}] {d.content[:80]}")
+            lines.append(f"  • [{d.mood}] {d.content}")
         if not diary:
             lines.append("  (none)")
 
@@ -133,7 +133,7 @@ class TerminalUI:
             sender = name_map.get(c.sender_id, "?")
             receiver = name_map.get(c.receiver_id, "?")
             whisper = " (whisper)" if c.is_whisper else ""
-            lines.append(f"  {sender} → {receiver}{whisper}: {c.content[:60]}")
+            lines.append(f"  {sender} → {receiver}{whisper}: {c.content}")
         if not convos:
             lines.append("  (none)")
         return "\n".join(lines)
