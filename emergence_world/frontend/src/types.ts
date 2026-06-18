@@ -31,6 +31,7 @@ export interface SimStatus {
   running: boolean
   paused: boolean
   day_count: number
+  current_time?: string
   agents_in_queue: number
   boost_queue: number
 }

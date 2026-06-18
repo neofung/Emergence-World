@@ -283,6 +283,7 @@ class SimulationEngine:
             "running": self._running,
             "paused": self._paused,
             "day_count": self._world_state.day_count if self._world_state else 0,
+            "current_time": self._world_state.current_time.isoformat() if self._world_state else None,
             "agents_in_queue": self.scheduler.queue_size,
             "boost_queue": self.scheduler.boost_size,
         }
