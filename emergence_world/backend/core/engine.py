@@ -185,12 +185,15 @@ class SimulationEngine:
             tool_results = []
             for tu in tool_uses:
                 result_text = await self._execute_tool(agent, tu.name, tu.input)
+                # Update location after tool execution (agent may have moved)
+                if agent.current_landmark:
+                    landmark_display = agent.current_landmark.display_name or agent.current_landmark.name
                 tool_results.append({
                     "type": "tool_result",
                     "tool_use_id": tu.id,
                     "content": result_text,
                 })
-                logger.info(f"[{display}]   → {result_text}")
+                logger.info(f"[{display}] [{landmark_display}]   → {result_text}")
                 self.db.add(EventLog(
                     agent_id=agent.id, agent_name=display,
                     event_type="tool_call", tool_name=tu.name,
